@@ -2,7 +2,8 @@
 
 /**
 * Process Dashboard Notes Module for ProcessWire
-* This module enables you to create custom menus for your website using drag and drop in the ProcessWire Admin Panel @todo
+* This module enables developers to post messages in the ProcessWire Admin for remote collaboration and development support.
+* Messages can be classed according to priority, access-controlled, threaded into conversations and expired.
 *
 * @author Francis Otieno (Kongondo)
 *
@@ -12,7 +13,7 @@
 * ProcessWire 3.x
 * Copyright (C) 2016 by Ryan Cramer
 *
-* Licensed under MIT v2, see LICENSE.TXT @todo
+* Licensed under MIT v2, see LICENSE.TXT
 *
 * http://www.processwire.com
 *
@@ -34,20 +35,22 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		return array(
 			'title' => 'Dashboard Notes: Process',
-			'summary' => 'Easy, drag and drop dashboard notes',
+			'summary' => 'Create messages in ProcessWire Admin',
 			'author' => 'Francis Otieno (Kongondo)',
 			'version' => 1,
-			'href' => 'http:// processwire.com/talk/topic/4451-module-dashboard-notes/',
+			'href' => 'http:// processwire.com/talk/topic/xxxx/',// @todo
 			'singular' => true,
 			'autoload' => false,
 			'permission' => 'dashboard-notes',
-			'installs' => 'MarkupMenuBuilder'
+			'requires' => 'FieldtypeComments'
 		);
 
 	}
 
 
 	const PAGE_NAME = 'dashboard-notes';
+
+	// @todo: delete as appropriate!
 
 	/**
 	 * Property to return this module's admin page (parent of all menus).
