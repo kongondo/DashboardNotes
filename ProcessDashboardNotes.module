@@ -106,16 +106,21 @@ class ProcessDashboardNotes extends Process implements Module {
 		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
 			 throw new WirePermissionException("You have no permission to use this module");
 
-		$this->wire('modules')->get('JqueryWireTabs');
-		$config = $this->wire('config');
-		$config->scripts->add($this->config->urls->ProcessDashboardNotes . 'scripts/jquery.mjs.nestedSortable.js');
-		$config->scripts->add($this->config->urls->ProcessDashboardNotes . 'scripts/jquery.asmselect-mb.js');
+		$modules = $this->wire('modules');
+		$modules->get("Jquery");
+		$ui = $modules->get("JqueryUI");
+		$ui->use("modal");
+		// @todo; needed? if not, delete!
+		$modules->get("JqueryMagnific");
 
+		// @todo; delete when done! not needed
 		$this->dashboardNotesParent = $this->wire('page');
 
+		// @todo; delete when done! not needed
 		// cookie per user to save state of number of menus to display per pagination screen in execute()
 		$this->cookieName = $user->id . '-dashboardnotes';
 
+		// @todo; delete when done! not needed?
 		// default number of menus to show in dashboard notes landing page if no custom limit set (via post/session cookie).
 		$this->showLimit = 10;
 
@@ -138,12 +143,20 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$out = '';
 
+		$baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
+		$addURL = $baseURL . "/add/?modal=1";
+		$settingsURL = $baseURL . "/settings/";
+
+		$addNoteText = $this->_('Add note');
+		$allNoteSettingsText = $this->_('Settings');
+
 		$out .=
 			 "<div>" .
-				 "<p>Each note is a page. The page has two fields: (i)a plain textarea field for settings specific to the note. This will hold json values for: note importance (urgent, priority, low, etc); note color (hex); note view permission type (role/permission/user ID); note view permission ID (id of role(s), permission(s), or user(s)). (ii) A FieldtypeComments field with ratings disabled but conversation enabled, avatars disabled, etc. The key here is the conversation. We create/update/delete/read comments using the API. However, if possible, we can do the READ using the render comments methods of the field instead! Remember, we are using this in the backend only! Maybe a check for that as well?</p>" .
-				 "<p>Notes will have a parent page called Notes? Naah, we can just house them as children of the module page! However challenge here will be if we need global settings! If so, we can have a Notes parent page with a plain textarea field that we save JSON values to. What sort of global settings would we want though? We would want settings related to the comments field, for instance. E.g. reply depth? More? email notifications?</p>".
-				 "<p>We will need to check if FieldtypeComments is installed!</p>".
-				"<p>Draggable cards? What about the conversation flow then? Maybe cards and click more to see conversation? In that case, open in new window?</p>".
+				"<ul>" .
+					"<li><a href='{$addURL}' class='pw-modal pw-modal-medium'><span>{$addNoteText}</span></a></li>" .
+					"<li><a href='{$settingsURL}'><span>{$allNoteSettingsText}</span></a></li>" .
+				"</ul>" .
+
 			"</div>";
 
 		return $out;
@@ -179,7 +192,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Renders a single menu for editing.
+	 * Renders a single menu for editing. @todo
 	 *
 	 * Called when the URL is Menu Builders page URL + "/edit/"
 	 * note: matches what is appended after ___execute below.
@@ -188,7 +201,182 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $form Form markup.
 	 *
 	 */
-	public function ___executeEdit() {
+	public function ___executeAdd() {
+
+
+
+		$modules = $this->wire('modules');
+
+
+		// create form for adding new note (page)
+		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_new_note');
+		$form->action = './';
+		$form->method = 'post';
+		$form->description = $this->_('New Note');
+
+		// new note: title (text)
+		$f = $modules->get('InputfieldText');
+		$f->attr('name', 'dn_note_title');
+		$f->description = $this->_('Note title.');
+		$f->label = $this->_('Title');
+		$f->required = true;
+
+		$form->add($f);
+
+		// new note: inputfield selector
+		$f = $modules->get('InputfieldTextarea');
+		$f->attr('name', 'dn_note_text');
+		$f->label = $this->_('Text');// @todo: change label?
+		$f->description = $this->_('Note text.');
+		$f->required = true;
+		$f->rows = 5;
+
+		$form->add($f);
+
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_priority');
+		$f->attr('value', 2);
+		$f->label =  $this->_('Priority');
+		//$f->collapsed = Inputfield::collapsedYes;
+		$f->notes = $this->_('Specify note priority/urgency.');
+
+		$radioOptions = array (
+			1 => $this->_('Low'),
+			2 => $this->_('Normal'),
+			3 => $this->_('High'),
+	 	);
+
+		$f->addOptions($radioOptions);
+
+		$form->add($f);
+
+		#########
+
+		// new inputfieldwrapper
+		$wrapper = new InputfieldWrapper();
+		$wrapper->attr('title', $this->_('Settings'));
+		$id = $this->className() . 'Settings';
+		$wrapper->attr('id', $id);
+
+		/* ## note visibility ## */
+
+		$fieldset = $modules->get('InputfieldFieldset');
+		$fieldset->attr('id', 'dn_note_settings');
+		$fieldset->label = $this->_('Note Settings');
+
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_visibility_limit');
+		$f->attr('value', 1);
+		$f->label =  $this->_('Note Visibility');
+		$f->collapsed = Inputfield::collapsedYes;
+		$f->notes = $this->_('Specify who should be able to view this note. You can limit by roles, permissions or users. Otherwise, the note will be visible to all who can access Dashboard Notes.');
+
+		$radioOptions = array (
+			1 => $this->_('Visible to all with Dashboard Notes Access'),
+			2 => $this->_('Roles'),
+			3 => $this->_('Permissions'),
+			4 => $this->_('Users'),
+	 	);
+
+		$f->addOptions($radioOptions);
+
+		$fieldset->add($f);
+
+		// @todo: move to function + show if!
+
+		// note visibility: by role
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_limit_role");
+		//$f->collapsed = Inputfield::collapsedYes;
+		$f->label = $this->_('Roles Limit');
+		$f->description = $this->_("Select roles allowed to view this note.");
+		$f->showIf = 'dn_note_visibility_limit=2';
+		$f->requiredIf = 'dn_note_visibility_limit=2';
+
+		$roles = $this->getRoles();
+
+		$f->addOptions($roles);
+
+		$fieldset->add($f);
+
+		// note visibility: by permission
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_limit_permission");
+		//$f->collapsed = Inputfield::collapsedYes;
+		$f->label = $this->_('Permissions Limit');
+		$f->description = $this->_("Select permissions allowed to view this note.");
+		$f->showIf = 'dn_note_visibility_limit=3';
+		$f->requiredIf = 'dn_note_visibility_limit=3';
+
+		$permissions = $this->getPermissions();
+
+		$f->addOptions($permissions);
+
+		$fieldset->add($f);
+
+		// note visibility: by permission
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_limit_users");
+		//$f->collapsed = Inputfield::collapsedYes;
+		$f->label = $this->_('Users Limit');
+		$f->description = $this->_("Select users who can view this note.");
+		$f->showIf = 'dn_note_visibility_limit=4';
+		$f->requiredIf = 'dn_note_visibility_limit=4';
+
+		$users = $this->getUsers();
+
+		$f->addOptions($users);
+
+		$fieldset->add($f);
+
+		########
+
+		$form->add($fieldset);
+
+		// new note: submit button
+		$f = $modules->get('InputfieldButton');
+		$f->attr('id+name', 'dn_new_note_btn');
+		$f->value = $this->_('Save');
+		$f->attr('type', 'submit');
+
+		$form->add($f);
+
+
+
+		// post new note for saving
+		$post = $this->wire('input')->post;
+		if($post->dn_new_note_btn){
+			// @todo: saving here!
+		}
+
+		return $form->render();
+
+	}
+
+	/**
+	 * Renders a single menu for editing. @todo
+	 *
+	 * Called when the URL is Menu Builders page URL + "/edit/"
+	 * note: matches what is appended after ___execute below.
+	 *
+	 * @access public
+	 * @return string $form Form markup.
+	 *
+	 */
+	public function ___executeSettings() {
+
+		$dashboardNotesURL = $this->wire('config')->urls->admin . "dashboard-notes/";
+
+		$backlinkText = $this->_('Back to all Notes. Add back icon here');
+
+		$out =
+			 "<div>" .
+				"<a href='{$dashboardNotesURL}'><span>{$backlinkText}</span></a>" .
+			"</div>";
+
+		$out .= "<div>Settings for all notes. Backlink to all notes</div>";
+		return $out;
 
 
 		$modules = $this->wire('modules');
@@ -278,7 +466,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		############################################ - if input->post - ############################################
 
 		// if saving menu
-		elseif($post->menu_save || $post->menu_save_exit || $post->menu_delete) $this->save($form);
+		elseif($post->menu_save || $post->menu_save_exit || $post->note_delete) $this->save($form);
 		// else invalid menu ID or no ID provided (e.g. /edit/)
 		else $this->wire('session')->redirect($this->wire('page')->url);// redirect to landing page
 
@@ -296,7 +484,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $out Menu items markup.
 	 *
 	 */
-	private function listMenu($parent = 0, $first = 0) {
+	private function renderNotes($parent = 0, $first = 0) {
 
 		$menuID = (int) $this->wire('input')->get->id;
 
@@ -397,37 +585,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-	/**
-	 * Outputs javascript configuration value for other menu features.
-	 *
-	 * @access protected
-	 * @return object $scripts Object with array of configurations to pass to JS.
-	 *
-	 */
-	protected function menuConfigs() {
-
-		// our default include children setting
-		$options = array('config' => array('children' => 0));// do not include children
-
-		// @todo: this could be refactored!
-		if(count($this->menuPages)) {
-			// if a custom 'include children' setting found, we overwrite the default one
-			foreach ($this->menuPages as $key => $value) {
-				if($key == 'children' && $this->wire('user')->hasPermission('dashboard-notes-include-children')) {
-					$options['config'][$key] = $value;
-					break;
-				}
-			}
-
-			// set multilingual status
-			$options['config']['multilingual'] = isset($this->menuPages['menu_items_languages']) ? 1 : 0;
-		}
-		// ProcessDashboardNotes
-		$scripts = $this->wire('config')->js($this->className(), $options);
-
-		return $scripts;
-
-	}
 
 	/* ######################### - CRUD ACTIONS - ######################### */
 
@@ -457,18 +614,18 @@ class ProcessDashboardNotes extends Process implements Module {
 		// save single specified menu
 		elseif($post->menu_save || $post->menu_save_exit) $this->saveSingleMenu($menuID, $post);
 		// delete menu
-		elseif ($post->menu_delete) $this->menuDelete($menuDeleteConfirm);
+		elseif ($post->note_delete) $this->noteDelete($menuDeleteConfirm);
 
 	}
 
 	/**
-	 * Delete a single menu item.
+	 * Delete a single menu item. @todo: bulk trash those marked for trash? I think so!
 	 *
 	 * @access private
 	 * @param integer $menuID ID of the Menu to delete.
 	 *
 	 */
-	private function menuDelete($menuID) {
+	private function noteDelete($menuID) {
 
 		if($menuID) {
 
@@ -505,605 +662,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-	/**
-	 * Save a single menu item.
-	 *
-	 * @param integer $menuID ID of the Menu to delete.
-	 * @param array $post Post input with a menu's settings.
-	 * @access private
-	 *
-	 */
-	private function saveSingleMenu($menuID, $post) {
-
-		//  ================ SAVE SINGLE EXISTING MENU (executeEdit()) =====================
-
-		$user = $this->wire('user');
-		$sanitizer = $this->wire('sanitizer');
-		$page = $this->wire('page');
-		$pages = $this->wire('pages');
-
-		$menu = $pages->get($menuID);
-
-		// if we didn't get a menu, exit with an error
-		if(!$menu->id) {
-			$this->error($this->_('Dashboard Notes: Error saving Menu.'));
-			return false;
-		}
-
-		// if menu is locked for editing, exit with an error
-		if($menu->is(Page::statusLocked)) {
-			$this->error($this->_('Dashboard Notes: This menu is locked for edits.'));
-			$this->wire('session')->redirect($page->url . 'edit/?id=' . $menuID);// redirect back to the menu we were editing
-		}
-
-		################# process menu #################
-
-		$menuTitle = $sanitizer->text($post->menu_title);
-
-		// if no title provided, halt proceedings and show error message
-		if (!$menuTitle) {
-			$this->error($this->_('Dashboard Notes: A title is required.'));
-			return false;
-		}
-
-		$menu->title = $menuTitle;
-		$menu->name = $sanitizer->pageName($menuTitle);
-
-		#################	01. Process menu 'pages'	#################
-		$menu->menu_pages = $this->saveSingleMenuPages($menu, $post);
-		#################	02. Process EXISTING menu items 	#################
-		$menu->menu_items = $this->saveSingleMenuItems($post);
-		#################	03. Process menu settings 	#################
-		if($user->hasPermission('dashboard-notes-settings')) $menu->dashboard_notes_settings = $this->saveSingleMenuSettings($post);// only save for users with right permission
-
-		#################	Save menu 	#################
-		$menu->save();
-
-		// also delete cache of menu if present so that can be refreshed
-		$this->deleteMenuCache($menu->id);
-
-		$this->message($this->_('Dashboard Notes: Saved Menu '. $menu->title));
-		if($post->menu_save_exit) $this->wire('session')->redirect($page->url);
-		else $this->wire('session')->redirect($page->url . 'edit/?id=' . $menuID);// redirect back to the menu we were editing
-
-	}
-
-	/**
-	 * Save a single menu 'pages' settings.
-	 *
-	 * Here pages refer mainly to settings that affect the whole menu.
-	 * These include, allow markup, etc.
-	 *
-	 * @access private
-	 * @param object $menu Page representing the menu being edited.
-	 * @param object $post The Post containing all 'pages' values to be saved for this menu.
-	 * @return string $menuPagesJSON JSON String to save as settings for this menu.
-	 *
-	 */
-	private function saveSingleMenuPages($menu, $post) {
-
-		$user = $this->wire('user');
-		$sanitizer = $this->wire('sanitizer');
-
-		// array for newly set menuPages settings ('sel', 'input', 'markup' and 'children')
-		$menuPagesNew = array();
-
-		// only save for users with correct permissions
-		// ensures their settings are not overwritten (although hidden for other users)
-
-		// if this user has permission to SPECIFY pages selectable as menu items in AsmSelect and PageAutocomplete
-		if($user->hasPermission('dashboard-notes-selectable')) {
-			// selector for finding pages that can be added to the menu (for AsmSelect/Autocomplete)
-			$menuPagesNew['sel'] = $sanitizer->text($post->menu_pages);
-		}
-
-		// if user has permission to allow changing of page field type used to select pages to add as menu items [AsmSelect vs PageAutocomplete]
-		if($user->hasPermission('dashboard-notes-page-field')) {
-			// page inputfield type for finding pages that can be added to the menu (AsmSelect vs. Autocomplete)
-			// we only save this if user selects Autocomplete; otherwise defaults to AsmSelect
-			//$menuPagesNew['input'] = (int) $post->menu_pages_select == 2 ? 2 : '';
-			$menuPagesNew['input'] = '';
-			$selPageField = (int) $post->menu_pages_select;
-			if($selPageField == 2) $menuPagesNew['input'] = 2;
-			elseif($selPageField == 3) $menuPagesNew['input'] = 3;
-		}
-
-		// if user can change and use allow markup/HTML setting
-		if($user->hasPermission('dashboard-notes-markup')) {
-			// whether to allow HTML markup in menu item titles/lables -> e.g. <span>Home</span>
-			// we only save this if user selects Yes; otherwise defaults to No (don't allow markup)
-			// we'll then use the correct sanitizer below
-			$this->allowMarkup = $menuPagesNew['markup'] = (int) $post->menu_item_title_markup == 1 ? 1 : '';
-		}
-
-		// if user can change and use include children setting
-		if($user->hasPermission('dashboard-notes-include-children')) {
-			// we only save this if user selects Yes; otherwise defaults to No (don't allow inclusion of children)
-			// we'll then use the correct sanitizer below
-			$this->includeChildren = $menuPagesNew['children'] = (int) $post->menu_item_include_children == 1 ? 1 : '';
-		}
-
-		// if user can change and use disable items setting
-		if($user->hasPermission('dashboard-notes-disable-items')) {
-			// we only save this if user selects Yes; otherwise defaults to No (don't allow disabling of menu items)
-			$this->disableItems = $menuPagesNew['disable_items'] = (int) $post->menu_item_disable_items == 1 ? 1 : '';
-		}
-
-		// if user can change and use multi-lingual menu items feature
-		if($user->hasPermission('dashboard-notes-multi-lingual-items')) {
-			$this->menuItemsLanguages = $menuPagesNew['menu_items_languages'] = count($post->menu_items_languages) ? $post->menu_items_languages : '';
-		}
-
-		// merge newly set menuPages values with (any) existing ones
-		$menuPagesSaved = json_decode($menu->menu_pages, true);
-		if(!is_array($menuPagesSaved)) $menuPagesSaved = array();
-		$menuPages = array_merge($menuPagesSaved, $menuPagesNew);
-
-		// JSON string of menu pages and menu items to save
-		$menuPagesJSON = count($menuPages) ? wireEncodeJSON($menuPages) : '';// using wireEncodeJSON ensures we only save non-empty values
-
-		return $menuPagesJSON;
-
-	}
-
-	/**
-	 * Save a single menu's menu items.
-	 *
-	 * @access private
-	 * @param object $post The Post containing all menu items and their properties.
-	 * @return string $menuitemsJSON JSON String to save as menu items for this menu.
-	 *
-	 */
-	private function saveSingleMenuItems($post) {
-
-		#################	01. Process existing menu items 	#################
-		$menuItems = $this->saveSingleMenuItemsExisting($post);
-		// we'll need this to auto-increment menu IDs for new menu items (to ensure uniqueness)
-		$lastID = count($menuItems) ? max(array_keys($menuItems)) : 0;// will give us the highest numbered array key (the itemID)
-
-		$this->menuItemID = $lastID + 1;
-
-		#################	02: Process NEW custom menu items 	#################
-		$menuItems = $this->saveSingleMenuItemsNewCustom($post, $menuItems);
-		#################	03: Process NEW menu items from PW Pages 	#################
-		$this->setSingleMenuItemsNewPagesArrays($post);
-		$menuItems = $this->saveSingleMenuItemsNewPages($menuItems);
-		#################	04: Process NEW menu items from Selector 	#################
-		$menuItems = $this->saveSingleMenuItemsNewSelector($post, $menuItems);
-
-		$menuitemsJSON = count($menuItems) ? wireEncodeJSON($menuItems) : '';
-
-		return $menuitemsJSON;
-
-	}
-
-	/**
-	 * Prepare data for existing menu items within a menu being saved.
-	 *
-	 * @access private
-	 * @param object $post The Post containing all menu items and their properties.
-	 * @return array $menuItems Array populated with data for existing menu items for menu being saved.
-	 *
-	 */
-	private function saveSingleMenuItemsExisting($post) {
-
-		$user = $this->wire('user');
-		$sanitizer = $this->wire('sanitizer');
-
-		// array to hold our all our menu items
-		$menuItems = array();
-		// for mutlilingual titles and custom URLs if needed
-		$menuItemsLanguage = array();
-
-		// to hold IDs of disabled items to action cascading same status to descendants
-		$disabledItemsIDs = array();
-
-		// loop through the existing, updated menu items sent from nestedSortable
-		// only loop if we have existing menu times. we check the hidden field with IDs of menu items
-		if(count($post->item_id)) {
-
-			//$ml = $this->multiLingual ? true : false;
-			$ml = !is_null($this->menuItemsLanguages) ? true : false;
-
-			//$itemIncludeChildren = '';
-			//$itemMMaxLevel = '';
-
-			if($this->allowMarkup) $purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
-
-			foreach($post->item_id as $itemID) {
-
-				$itemMMaxLevel = '';
-
-				$itemID = (int) $itemID;
-				if(!$itemID) continue;
-
-				// if menu items titles allow HTML (markup) && user has correct permission, we run them though HTML purifier
-				if($this->allowMarkup && $user->hasPermission('dashboard-notes-markup')) $itemTitle = $purifier->purify($post->item_title[$itemID]);
-				// else we sanitize menu item titles as text
-				else $itemTitle =  $sanitizer->text($post->item_title[$itemID]);
-
-				if(!$itemTitle) continue;
-
-				$itemURL = $sanitizer->url($post->item_url[$itemID]);
-				if(!$itemURL) continue;
-
-				$itemParent = (int) $post->item_parent[$itemID];// the item's parent in relation to the menu (not PW page menu!)
-				$itemPagesID = (int) $post->pages_id[$itemID];
-				$itemURL = $itemPagesID == 0 ? $itemURL : '';// only save custom (external to PW) items links
-
-				// add multilingual titles and URLs (for custom menu items only)
-				if($ml) $menuItemsLanguage = $this->saveSingleMenuItemsExistingLanguagesTitleURL($itemID, $itemPagesID, $post, $menuItemsLanguage);
-
-				$itemCSSID = $sanitizer->name($post->css_itemid[$itemID]);// single value
-				$itemCSSClass = $sanitizer->text($post->css_itemclass[$itemID]);// sanitizer->text to accept multiple classes
-				$itemNewTab = isset($post->newtab[$itemID]) ? 1 : '';// only save for custom menu items with target='_blank'
-
-				// if current user can edit include children values + change include children setting
-				$itemIncludeChildren = '';
-				if( $this->includeChildren && isset($post->include_children[$itemID]) ) {
-					// no need to save default value '4'
-					$itemIncludeChildren =  (int) $post->include_children[$itemID] == 4 ? '' : (int) $post->include_children[$itemID];
-					// @todo: For now, only m_max_level can be individually set
-					$itemMMaxLevel = $itemIncludeChildren == 1 || $itemIncludeChildren == 3 ? (int) $post->mb_max_level[$itemID] : '';
-				}
-
-				// if current user can edit enable/disable menu items feature + change items enabled status
-				$itemDisabled = $this->disableItems && isset($post->disabled_item[$itemID]) ? 1 : '';
-
-				// if parent is disabled, then disable all descendants as well
-				if(in_array($itemParent, $disabledItemsIDs)) $itemDisabled = 1;
-
-				$menuItems[$itemID] = array(
-					'title' => $itemTitle,
-					'parent_id' => $itemParent,
-					'url' => $itemURL,
-					'pages_id' => $itemPagesID,
-					'css_itemid' => $itemCSSID,
-					'css_itemclass' => $itemCSSClass,
-					'newtab' => $itemNewTab,
-					'include_children' => $itemIncludeChildren,
-					'm_max_level' => $itemMMaxLevel,
-					'disabled_item' => $itemDisabled,
-				);
-
-				// add disabled item to array to check if to apply same status to descendants
-				if($itemDisabled) $disabledItemsIDs[] = $itemID;
-
-			}// end foreach loop for existing menu items
-
-			// merge menu items with multilingual titles and custom URLs if applicable
-			if(count($menuItemsLanguage)) $menuItems = array_replace_recursive($menuItems, $menuItemsLanguage);
-
-		}// end if count $post->item_id
-
-		return $menuItems;
-
-	}
-
-	/**
-	 * Prepare multi-lingual data for existing menu items within a menu being saved.
-	 *
-	 * @access private
-	 * @param integer $itemID The ID of the menu item being prepared for saving.
-	 * @param integer $itemPagesID The pages ID of the menu item. If 0, it means a custom menu item.
-	 * @param object $post The Post containing the menu item's multi-lingual properties.
-	 * @param array $menuItemsLanguage Array with data for existing menu items multi-lingual titles and URLs for menu being saved.
-	 * @return array $menuItemsLanguage Updated array with data for existing menu items multi-lingual titles and URLs for menu being saved.
-	 *
-	 */
-	 private function saveSingleMenuItemsExistingLanguagesTitleURL($itemID, $itemPagesID, $post, $menuItemsLanguage) {
-
-		 $user = $this->wire('user');
-		 $sanitizer = $this->wire('sanitizer');
-		 if($this->allowMarkup) $purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
-
-		 foreach($this->getLanguages(1) as $langName => $langTitle) {// @note: 1 means skip non-active languages
-
-		 	if($langName == 'default') continue;
-
-		 	$suffix = '_' . $langName;
-
-		 	## language title ##
-		 	// if menu items titles allow HTML (markup) && user has correct permission, we run them though HTML purifier
-			if($this->allowMarkup && $user->hasPermission('dashboard-notes-markup')){
-				$itemLanguageTitle = $purifier->purify($post->{"item_title{$suffix}"}[$itemID]);
-			}
-			// else we sanitize menu item title as text
-			else $itemLanguageTitle = $sanitizer->text($post->{"item_title{$suffix}"}[$itemID]);
-
-			## language url ##
-			$itemLanguageURL = $itemPagesID == 0 ? $sanitizer->url($post->{"item_url{$suffix}"}[$itemID]) : '';// only save custom (external to PW) items links
-
-			##################
-
-		 	$titleIndex = 'title' . $suffix;
-		 	$urlIndex = 'url' . $suffix;
-
-		 	$menuItemsLanguage[$itemID][$titleIndex] = $itemLanguageTitle;
-		 	$menuItemsLanguage[$itemID][$urlIndex] = $itemLanguageURL;
-
-		 }// end foreach
-
-		 return $menuItemsLanguage;
-
-	}
-
-	/**
-	 * Prepare data for new (pw) pages menu items from added pages for the menu being saved.
-	 *
-	 * @access private
-	 * @param array $menuItems Array with data for menu items being prepared for saving.
-	 * @return array $menuItems Updated array with data for menu items to save.
-	 *
-	 */
-	private function saveSingleMenuItemsNewPages($menuItems) {
-
-		$menuItemID = $this->menuItemID;
-		$pages = $this->wire('pages');
-		$sanitizer = $this->wire('sanitizer');
-		// for multilingual environments
-		$language = $this->wire('user')->language; // save the current user's language
-
-		$count = count($this->addPages);
-
-		for ($i = 0; $i < $count; $i++) {
-
-			// if there are menu items added from the AsmSelect, add them to the menu
-			$itemID = (int) $this->addPages[$i];// sanitize: we need this to be an integer
-
-			// multilingual environments
-			if($language != null && method_exists($pages->get($itemID)->title, 'getLanguageValue')) $itemTitle = $pages->get($itemID)->title->getLanguageValue($language);// title of each PW page in this array
-			else $itemTitle = $pages->get($itemID)->title;// title of each PW page in this array
-			if(!$itemTitle) continue;// if no new pages posted, move on...[otherwise one iteration with empty strings is added to array!]
-
-			$itemCSSID = isset($this->pagesCSSID[$i]) ? $sanitizer->name($this->pagesCSSID[$i]) : '';
-			$itemCSSClass = isset($this->pagesCSSClass[$i]) ? $sanitizer->text($this->pagesCSSClass[$i]) : '';
-
-			// include children (but not for custom menu items or 'Home')
-			$itemIncludeChildren = '';
-			if(isset($this->pagesIncludeChildren[$i])) {
-				$itemIncludeChildren = (int) $this->pagesIncludeChildren[$i] == 4 || $itemID == 1 ? '' : (int) $this->pagesIncludeChildren[$i];
-			}
-
-			// @todo: only m_max_level can be individually set for now
-			$itemMMaxLevel = $itemIncludeChildren == 1 || $itemIncludeChildren == 3 ? (int) $this->pagesMBMaxLevel[$i] : '';
-			#$itemBMaxLevel = $itemIncludeChildren == 2 ? (int) $this->pagesMBMaxLevel[$i] : '';
-
-			// @todo - not setting individually for now
-			// determine m and b_max_levels when 'Both' selection made in include children level (and if there's need for separate levels)
-			/*if($itemIncludeChildren == 3) {
-				$itemMBMaxLevels = explode(',', $pagesMBMaxLevel[$i]);
-				$itemMMaxLevel = (int) $itemMBMaxLevels['0'];
-				$itemBMaxLevel = isset($itemMBMaxLevels['1']) && $itemMBMaxLevels['1'] ? (int) $itemMBMaxLevels['1'] : $itemMMaxLevel;
-			}*/
-
-			// add PW pages (internal) menu items to our menu
-			$menuItems[$menuItemID] = array(
-				'title' => $itemTitle,
-				'parent_id' => 0,// for new items before they are sorted in drag & drop
-				// 'url' => '',// empty since these are PW pages; no needed to copy URL here + need to make sure always have latest
-				'css_itemid' => $itemCSSID,
-				'css_itemclass' => $itemCSSClass,
-				'pages_id' => $itemID,// the PW page ID
-				// 'newtab' => '',// NOT necessary for PW pages
-				'include_children' => $itemIncludeChildren,
-				'm_max_level' => $itemMMaxLevel,
-				// 'b_max_level' => $itemBMaxLevel,// @todo - not setting individually for now
-			);
-
-			$menuItemID++;
-
-		}// end for loop for new page items
-
-
-		$this->menuItemID = $menuItemID;
-
-		return $menuItems;
-
-	}
-
-	/**
-	 * Prepare data for new (pw) pages menu items from selector for the menu being saved.
-	 *
-	 * @access private
-	 * @param object $post The Post containing the selector for adding menu items.
-	 * @param array $menuItems Array with data for menu items being prepared for saving.
-	 * @return array $menuItems Updated array with data for menu items to save.
-	 *
-	 */
-	private function saveSingleMenuItemsNewSelector($post, $menuItems) {
-
-		$menuItemID = $this->menuItemID;
-		$pages = $this->wire('pages');
-		$sanitizer = $this->wire('sanitizer');
-		$language = $this->wire('user')->language; // save the current user's language
-
-		$items = array();
-
-		$selectorPages = $sanitizer->text($post->item_addselector);
-		if($selectorPages) {
-			$sel = ", template!=admin, has_parent!=2, parent!=7, id!=27";// prevent accidental addition of admin|trash|404 pages
-			$items = $pages->find($selectorPages . $sel);
-		}
-
-		if (count($items)) {
-
-			foreach ($items as $item) {
-
-				// add PW pages (internal) menu items from the selector to our menu
-				$menuItems[$menuItemID] = array(
-					// multilingual environments
-					'title' => $title = is_null($language) ? $item->title : $item->title->getLanguageValue($language),
-					'parent_id' => 0,// for new items before they are sorted in drag & drop
-					// 'url' => '',// empty since these are PW pages; no needed to copy URL here + need to make sure always have latest
-					// 'css_itemid' => ''// empty until edited
-					// 'css_itemclass' => ''// empty until edited
-					'pages_id' => $item->id,// the PW page ID
-					// 'newtab' => ''// NOT necessary for PW pages
-				);
-
-				$menuItemID++;
-
-			}// end foreach $items as $item
-
-		}// end if count($items)
-
-		return $menuItems;
-
-	}
-
-	/**
-	 * Save a single menu nestedSortable settings.
-	 *
-	 * @access private
-	 * @param object $post The Post containing all menu settings.
-	 * @return string $menuSettingsJSON JSON String to save as settings for this menu.
-	 *
-	 */
-	private function saveSingleMenuSettings($post) {
-
-		$user = $this->wire('user');
-		$sanitizer = $this->wire('sanitizer');
-
-		// if user has permission to edit nestedSortable settings
-		if($user->hasPermission('dashboard-notes-settings')) {
-			// nestedSortable settings for this menu. we'll save this as JSON in dashboard_notes_settings field
-			$dashboardNotesSettings = array();
-			// nestedSortable settings
-			foreach ($post->dashboard_notes_settings as $key => $value) {
-				// only save non-empty $key => $values
-				if($value) {
-					if($key == 'maxLevels' || $key == 'expandOnHover' || $key == 'tabSize') $value = (int) $value;
-					else $value = $sanitizer->text($value);
-					$dashboardNotesSettings[$key]['setting'] = $value;
-				}
-			}// end foreach
-		}// end if user has dashboard-notes-settings permission
-
-		// JSON string of menu settings to save
-		$menuSettingsJSON = count($dashboardNotesSettings) ? json_encode($dashboardNotesSettings) : '';
-
-		return $menuSettingsJSON;
-
-	}
-
-	/**
-	 * Apply bulk actions to selected menu items.
-	 *
-	 * @access private
-	 * @param object $post Input Post with action to apply and menu items to apply them to.
-	 * @access private
-	 *
-	 */
-	private function bulkActionsMenu($post) {
-
-		$action = $this->wire('sanitizer')->fieldName($post->menus_action_select);
-
-		if (!$action) {
-			$this->error($this->_("Dashboard Notes: You need to select an action."));
-			return false;
-		}
-
-		$actionMenus = $post->menus_action;// checkbox array name
-
-		// check if menus were selected.
-		if (count($actionMenus)) {
-
-			// prepare sent menu IDs to find and TRASH the menu pages
-			$menuIds = implode('|', $actionMenus);// split array elements, joining them with pipe (I) to use in selector
-			$menus = $this->wire('pages')->find("id={$menuIds}, include=all");
-
-			$i = 0;
-			# publish
-			if ($action == 'publish') {
-				foreach ($menus as $m) {
-					$m->removeStatus(Page::statusUnpublished);
-					$m->save();
-					$i++;
-				}
-
-				$msg = sprintf(_n("Published %d menu.", "Published %d menus.", $i), $i);
-
-			}// end publish menus
-
-			# unpublish
-			elseif ($action == 'unpublish') {
-				foreach ($menus as $m) {
-					$m->addStatus(Page::statusUnpublished);
-					$m->save();
-					$i++;
-				}
-
-				$msg = sprintf(_n("Unpublished %d menu.", "Unpublished %d menus.", $i), $i);
-
-			}// end unpublish menus
-
-			# lock
-			elseif ($action == 'lock') {
-				foreach ($menus as $m) {
-					$m->addStatus(Page::statusLocked);
-					$m->save();
-					$i++;
-				}
-
-				$msg = sprintf(_n("Locked %d menu.", "Locked %d menus.", $i), $i);
-
-			}// end lock menus
-
-			# unlock
-			elseif ($action == 'unlock') {
-				foreach ($menus as $m) {
-					$m->removeStatus(Page::statusLocked);
-					$m->save();
-					$i++;
-				}
-
-				$msg = sprintf(_n("Unlocked %d menu.", "Unlocked %d menus.", $i), $i);
-
-			}// end unlock menus
-
-			# trash
-			elseif ($action == 'trash') {
-				foreach ($menus as $m) {
-					$m->trash();
-					$i++;
-					// also delete cache of menu if present
-					$this->deleteMenuCache($m->id);
-				}
-
-				$msg = sprintf(_n("Trashed %d menu.", "Trashed %d menus.", $i), $i);
-
-			}// end trash menus
-
-			# delete
-			elseif ($action == 'delete') {
-				foreach ($menus as $m) {
-					$m->delete();
-					$i++;
-					// also delete cache of menu if present
-					$this->deleteMenuCache($m->id);
-				}
-
-				$msg = sprintf(_n("Deleted %d menu.", "Deleted %d menus.", $i), $i);
-
-			}// end delete menus
-
-			// messages
-			$msg = $this->_('Dashboard Notes') . ': ' . $msg;
-
-			$this->message($msg);// tell user how many menus were 'actioned'
-			$this->session->redirect($this->wire('page')->url);// redirect to page where we were
-
-		}
-
-		// error
-		else {
-			// show error message if apply action button clicked without first selecting menus
-			$this->error($this->_('Dashboard Notes: You need to select at least one menu before applying an action.'));
-			return false;
-		}
-
-	}
 
 	/**
 	 * Save new menus.
@@ -1162,6 +720,51 @@ class ProcessDashboardNotes extends Process implements Module {
 		else $this->error($this->_("Dashboard Notes: You need to add some menus."));
 
 	}
+
+	/* ######################### - GETTERS - ######################### */
+
+	/**
+	 * Undocumented function @todo
+	 *
+	 * @return void
+	 */
+	private function getRoles() {
+		$roles = array();
+		foreach($this->wire('roles') as $role) {
+			if($role->name == 'guest') continue;
+			$roles[$role->id] = $role->name;
+		}
+		return $roles;
+	}
+
+	/**
+	 * Undocumented function @todo
+	 *
+	 * @return void
+	 */
+	private function getPermissions() {
+		$permissions = array();
+		foreach($this->wire('permissions') as $permission) {
+			$permissions[$permission->id] = $permission->get("title|name");
+		}
+		return $permissions;
+	}
+
+	/**
+	 * Undocumented function @todo
+	 *
+	 * @return void
+	 */
+	private function getUsers() {
+		$users = array();
+		foreach($this->wire('users') as $user) {
+			if($user->name == 'guest') continue;
+			$users[$user->id] = $user->name;
+		}
+		return $users;
+	}
+
+
 
 	/* ######################### - INSTALLERS - ######################### */
 
