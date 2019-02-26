@@ -19,10 +19,28 @@ function ProcessDashboardNotes($) {
 		- function parameters and variables PREFIXED with '$'
 	*/
 
-    //var someVar, anotherVar;
+	var jsDashboardNotesConfigs, colourPickerSave, colourPickerClear;
+
+	// grab values for some variables
+	jsDashboardNotesConfigs = ProcessDashboardNotesConfigs();
 
     /*************************************************************/
-    // FUNCTIONS
+	// FUNCTIONS
+
+	/**
+	 * Get the configs sent by the module ProcessDashboardNotes.
+	 *
+	 * We use these mainly for our custom notices function.
+	 *
+	 * @return Object|false jsDashboardNotesConfigs Return configurations if found, else false.
+	 *
+	*/
+	function ProcessDashboardNotesConfigs(){
+		// ProcessDashboardNotes configs
+		var jsDashboardNotesConfigs = config.ProcessDashboardNotes;
+		if (!jQuery.isEmptyObject(jsDashboardNotesConfigs)) return jsDashboardNotesConfigs;
+		else return false;
+	}
 
     /**
      * Asm Select: Hide children level inputs if selected page is 'Home'.
@@ -139,10 +157,76 @@ function ProcessDashboardNotes($) {
 	}
 
 	/**
+	 *
+	 */
+	function initColourPicker() {
+
+		if(jsDashboardNotesConfigs) {
+			colourPickerSave = jsDashboardNotesConfigs.config.colourPickerSave;
+			colourPickerClear = jsDashboardNotesConfigs.config.colourPickerClear;
+		}
+		// @see optional options for more configuration.
+		const pickr = Pickr.create({
+			el: '#dn_colour_picker',
+
+			// Default color
+			default: '000',
+
+			components: {
+
+				// Main components
+				preview: true,
+				opacity: true,
+				hue: true,
+
+				// Input / output Options
+				interaction: {
+					hex: false,
+					rgba: false,
+					hsla: false,
+					hsva: false,
+					cmyk: false,
+					input: false,
+					clear: true,
+					save: true
+				},
+
+
+			},
+
+			// Translated Button strings // @todo; get from module config!
+			strings: {
+				save: colourPickerSave,  // save button
+				clear: colourPickerClear // clear button
+			}
+		});
+
+		pickr.on('save', (hsva) => {
+			console.log('save', hsva);
+			// converts the object to an rgba array.
+			//var rgba = hsva.toRGBA()
+			var rgbaString = hsva.toRGBA().toString(); // returns rgba(r, g, b, a)
+			//console.log('rgbaString', rgbaString); @todo: delete when done
+			// save the selected color to the hidden input for note background colour
+			$('form#dn_new_note input#dn_note_colour').val(rgbaString);
+
+		});
+	}
+
+	/**
 	 * Initialise this script.
 	 *
 	 */
 	function init() {
+
+		// initialise colour picker
+		if (typeof Pickr !== 'undefined') {
+			initColourPicker()
+		}
+
+
+
+
 
 
 
