@@ -106,12 +106,26 @@ class ProcessDashboardNotes extends Process implements Module {
 		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
 			 throw new WirePermissionException("You have no permission to use this module");
 
+		$sanitizer = $this->wire('sanitizer');
+		$urlSeg =  $sanitizer->pageName($this->wire('input')->urlSegment1);
+		// add color picker
+		if('add' == $urlSeg) {
+			$this->scriptConfigurations();
+			$config = $this->wire('config');
+			$url = $config->urls->ProcessDashboardNotes;
+			$config->styles->add($url . "vendor/pickr.min.css");
+			$config->scripts->add($url . "vendor/pickr.min.js");
+		}
+
+
 		$modules = $this->wire('modules');
 		$modules->get("Jquery");
 		$ui = $modules->get("JqueryUI");
 		$ui->use("modal");
 		// @todo; needed? if not, delete!
 		$modules->get("JqueryMagnific");
+
+
 
 		// @todo; delete when done! not needed
 		$this->dashboardNotesParent = $this->wire('page');
@@ -125,6 +139,35 @@ class ProcessDashboardNotes extends Process implements Module {
 		$this->showLimit = 10;
 
 		parent::init();
+
+	}
+
+	/* ######################### - CONFIGS - ######################### */
+
+	/**
+	 * Outputs javascript configuration values for this module.
+	 *
+	 * @access protected
+	 * @return string $scripts.
+	 *
+	 */
+	protected function scriptConfigurations() {
+
+		// translatable strings for use in JS
+		$colourPickerSave = $this->_('Save');
+		$colourPickerClear = $this->_('Clear');
+
+		// options for ajax calls
+		$options = array('config' =>
+			array(
+				'colourPickerSave' => $colourPickerSave,
+				'colourPickerClear' => $colourPickerClear,
+			)
+		);
+
+		$scripts = $this->wire('config')->js($this->className(), $options);
+
+		return $scripts;
 
 	}
 
@@ -203,6 +246,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeAdd() {
 
+		// @TODO: MODIFY THIS TO CATER FOR EDIT VERSUS ADD NOTE! WE MIGHT WANT TO EDIT NOTE, E.G. TO CHANGE PRIORITY! WE SHOULD ALSO BE ABLE TO EDIT THE FIRST COMMENT! THIS MEANS WE'LL NEED TO SET attr('value', $value) to our inputs!
 
 
 		$modules = $this->wire('modules');
@@ -234,42 +278,60 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$form->add($f);
 
+
+		######## SETTINGS #######
+
+
+		$fieldset = $modules->get('InputfieldFieldset');
+		$fieldset->attr('id', 'dn_note_settings');
+		$fieldset->label = $this->_('Settings');
+		$fieldset->collapsed = Inputfield::collapsedYes;
+
+		/* ## note priority ## */
+
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_priority');
 		$f->attr('value', 2);
 		$f->label =  $this->_('Priority');
-		//$f->collapsed = Inputfield::collapsedYes;
 		$f->notes = $this->_('Specify note priority/urgency.');
+
+		// @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
 
 		$radioOptions = array (
 			1 => $this->_('Low'),
 			2 => $this->_('Normal'),
 			3 => $this->_('High'),
-	 	);
+		 );
 
 		$f->addOptions($radioOptions);
 
-		$form->add($f);
+		$fieldset->add($f);
 
-		#########
+		//@todo: add colour picker for note colour!
+		/* ## note background colour ## */
 
-		// new inputfieldwrapper
-		$wrapper = new InputfieldWrapper();
-		$wrapper->attr('title', $this->_('Settings'));
-		$id = $this->className() . 'Settings';
-		$wrapper->attr('id', $id);
+		$colourMarkup = "<div id='dn_colour_picker'></div>";
+
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $colourMarkup);
+		$f->label = $this->_('Colour');
+		$f->notes = $this->_('Pick a background colour for the note. Default is no background colour');
+
+		$fieldset->add($f);
+
+		// hidden input to store selected/set note background colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_colour');
+		$f->attr('value', 0);
+		$fieldset->add($f);
 
 		/* ## note visibility ## */
-
-		$fieldset = $modules->get('InputfieldFieldset');
-		$fieldset->attr('id', 'dn_note_settings');
-		$fieldset->label = $this->_('Note Settings');
 
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_visibility_limit');
 		$f->attr('value', 1);
-		$f->label =  $this->_('Note Visibility');
-		$f->collapsed = Inputfield::collapsedYes;
+		$f->label =  $this->_('Visibility');
+		//$f->collapsed = Inputfield::collapsedYes;
 		$f->notes = $this->_('Specify who should be able to view this note. You can limit by roles, permissions or users. Otherwise, the note will be visible to all who can access Dashboard Notes.');
 
 		$radioOptions = array (
@@ -348,6 +410,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$post = $this->wire('input')->post;
 		if($post->dn_new_note_btn){
 			// @todo: saving here!
+
 		}
 
 		return $form->render();
@@ -472,118 +535,88 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
+
+	/* ######################### - RENDER/MARKUP - ######################### */
+
+
 	/**
-	 * Displays a nested list (menu items) of a single menu.
+	 * Recursively render list of threaded comments.
 	 *
-	 * This is a recursive function to display list of menu items.
-	 * Also displays each menu item's settings.
-	 *
-	 * @access private
-	 * @param integer $parent ID of menu items.
-	 * @param integer $first Helper variable to designate first menu item. Ensures CSS Class 'sortable' is output only once.
-	 * @return string $out Menu items markup.
+	 * @param integer $parent At which point of the hierarchy to start rendering from
+	 * @param CommentArray $comments Array of comments.
+	 * @param integer $first Helper parameter to know if on first list item.
+	 * @return string $out Markup of threaded comments.
 	 *
 	 */
-	private function renderNotes($parent = 0, $first = 0) {
+	private function renderThreadedComments($comments, $parent = 0, $first = 0) {
 
-		$menuID = (int) $this->wire('input')->get->id;
+        $out = '';
+		$replyText = $this->_('Reply');
+		$hasChild = false;
 
-		if($menuID) {
+        foreach ($comments as $comment) {
 
-			/*
-				INPUTS
+            // @todo: sort out \n and \t? not really important here though!
 
-					- id: item id of the menu item in relation to the menu (not same as pages_id!)
-					- title: the menu item title as saved in Build Menu (note: even PW native page->title can be customised)
-					- parent_id: the parent of this menu item in relation to the menu (note: does not have to reflect PW tree!; top tier items have parent_id = 0)
-					- url: the url of the menu item (if PW, use native $page->url; if custom use provided url)
-					- css_itemid: this menu item's CSS ID (optional)
-					- css_itemclass: this menu items's CSS Class (optional)
-					- pages_id: for PW pages items = $page->id; for custom menu items = 0 (note: this is different from id!)
-					- optional include children feature
-					- opitional disable menu items feature
+            // grab the comment text and clean it
+            $commentText = htmlentities($comment->text, ENT_QUOTES, "UTF-8");
+            $commentText = str_replace("\n\n", "</p><p>", $commentText);
+            $commentText = str_replace("\n", "<br />", $commentText);
 
-			 */
+            $created = $comment->created;
+            $commentDate = date( "d M Y", $created);// @todo: get from overall settings!
 
+            ## - build nested comments - ##
 
-			$out = '';
+            // if this comment item is a parent; create the inner-items/child-comment-items
+            if ($comment->parent_id == $parent) {
+                // if this is the first child
+                if ($hasChild === false) {
+                    $hasChild = true;// This is a parent
+                    if ($first == 0){
+                        $out .= "<ul id='dn_threaded_comments_main' class='uk-comment-list'>";
+                        $first = 1;
+                    }
+                    else $out .= "<ul class='uk-comment-list'>";
+                }
 
-			$has_child = false;
+                $out .=
+                    "<li>" .
+                        "<article class='uk-comment'>" .
+                            "<header class='uk-comment-header'>" .
+                                "<h4 class='uk-comment-title'>{$comment->cite}</h4>" .
+                                "<div class='uk-comment-meta'>{$commentDate}</div>" .
+                            "</header>" .
+                            "<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
 
-			// $id is = id; $item = arrays of title, url, newtab, etc
-			foreach ($this->menuItems as $id => $item) {
+                            // @todo: amend this! No need for some of the stuff here?
+                            "<div class='dn_note_comment_footer uk-margin-small-top uk-text-small'>" .
+                            "<p class='dn_note_comment_action uk-margin-small'>" .
+                                "<a class='dn_note_comment_action_reply' data-comment-id='{$comment->id}' href='#'>" .
+                                    $replyText .
+                                    "<span uk-icon='icon: arrow-right' class='uk-icon'>" .
+                                        "<svg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'>
+                                            <polyline fill='none' stroke='#000' points='10 5 15 9.5 10 14'></polyline>
+                                            <line fill='none' stroke='#000' x1='4' y1='9.5' x2='15' y2='9.5'></line>
+                                        </svg>" .
+                                    "</span>" .
+                                "</a>" .
+                            "</p>" .
+                        "</article>" .
+                ######################### generate child-comment items [recursion] #########################
+                $out .= $this->renderThreadedComments($comments, $comment->id, $first);
+                // close the <li>
+                $out .= "</li>";
+            }// end if parent
 
-				## - MENU ITEM PROPERTIES - ##
+        }// end foreach $comments
 
-				// set on the fly properties
-				$this->itemID = $id;
+        if ($hasChild === true) $out .= "</ul>";
 
-				$this->itemTitle = $item['title'];
-				$this->itemTitle2 = $this->wire('sanitizer')->entities($this->itemTitle);// for value of title input
-				$this->itemURL = isset($item['url']) ? $item['url'] : '';
+        return $out;
 
-				// if multilingual, also set language specific titles and urls
-				// @note: format is $this->itemTitle_de; $this->itemURL_de; $this->itemTitle2_de, etc...
-				if(!is_null($this->menuItemsLanguages)) $this->setLanguageTitlesAndURLs($item);
+    }
 
-				// items without parent ids are top level items
-				// we give them an ID of 0 for display purposes (we won't save the value [see wireEncodeJSON()])
-				$this->itemParentID = isset($item['parent_id']) ? $item['parent_id'] : 0;
-				$this->cssItemID = isset($item['css_itemid']) ? $item['css_itemid'] : '';
-				$this->cssItemClass = isset($item['css_itemclass']) ? $item['css_itemclass'] : '';
-				$this->itemPagesID = isset($item['pages_id']) ? $item['pages_id'] : 0;// only PW pages will have a pages_id > 0 (equal to their PW page->id)
-				$this->newTab = isset($item['newtab']) ? $item['newtab'] : 0;
-				$this->itemIncludeChildren = isset($item['include_children']) ? $item['include_children'] : '';
-				$this->itemMenuMaxLevel = isset($item['m_max_level']) ? $item['m_max_level'] : '';
-				$this->disabledItem = isset($item['disabled_item']) ? $item['disabled_item'] : '';
-
-				// custom menu items
-				if(!$this->itemPagesID) {
-					$this->itemType = $this->_('Custom');
-					$this->readOnly = '';
-				}
-				// pw page menu items
-				else {
-					$this->itemType = $this->_('Page');
-					$this->readOnly = ' readonly';
-					$this->itemURL = $this->wire('pages')->get($this->itemPagesID)->path;
-				}
-
-				## - BUILD MENU - ##
-
-				######################### item is a parent #########################
-				// if this menu item is a parent; create the inner-items/child-menu-items
-				if ($this->itemParentID == $parent) {
-					// if this is the first child output '<ol>' with the class 'sortable'
-					if ($has_child === false) {
-						$has_child = true;// This is a parent
-						if ($first == 0){
-							$out .= "<ol id='sortable_main' class='sortable'>\n";
-							$first = 1;
-						}
-						else $out .= "\n<ol>\n";
-					}
-
-					######################### menu item drag n drop handle #########################
-					$out .= $this->buildMenuItemDragDropHandleMarkup();
-					######################### item settings #########################
-					$out .=  $this->buildMenuItemSettingsPanel();
-					######################### generate sub-menu items [recursion] #########################
-					// call function again to generate nested list for sub-menu items belonging to this menu item.
-					$out .= $this->listMenu($id, $first);
-					// close the <li>
-					$out .= "</li>\n";
-				}// end if parent
-
-			}// end foreach $this->menuItems as $id => $item
-
-			if ($has_child === true) $out .= "</ol>\n";
-
-			return $out;
-
-		}// end if menuID
-
-	}
 
 
 	/* ######################### - CRUD ACTIONS - ######################### */
