@@ -91,6 +91,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	// multilingual
 	private $menuItemsLanguages;
 
+	private $urlSeg1;
+	private $baseURL;
+	private $notePageID;
 	private $noteTitle;
 	private $noteText;
 	private $notePriority;
@@ -139,14 +142,15 @@ class ProcessDashboardNotes extends Process implements Module {
 		exit;*/
 
 		$user = $this->wire('user');
+		$this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
 
 		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
 			 throw new WirePermissionException("You have no permission to use this module");
 
 		$sanitizer = $this->wire('sanitizer');
-		$urlSeg =  $sanitizer->pageName($this->wire('input')->urlSegment1);
+		$this->urlSeg1 =  $sanitizer->pageName($this->wire('input')->urlSegment1);
 		// add color picker
-		if('edit' == $urlSeg) {
+		if('edit' == $this->urlSeg1) {
 			$this->setNoteValues();
 			$this->scriptConfigurations();
 			$config = $this->wire('config');
@@ -223,57 +227,31 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___execute() {
 
+		// @TODO: WE NEED BOTH A BULK ACTIONS apply BUTTON AND A DROPEDOWN SELECT FOR SELECTION POSSIBLE ACTIONS (TRASH, DELETE, LOCK, UNLOCK, change priority (will need second dropdown like tags but radio))
+
+
 		$out = '';
 
-		// @todo: delete when done
-		$id = "&id=1297";
-		$id = "";
-
-		$baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
-		$addURL = $baseURL . "/edit/?modal=1{$id}";
-		$settingsURL = $baseURL . "/settings/";
-
-		$addNoteText = $this->_('Add note');
-		$allNoteSettingsText = $this->_('Settings');
-
 		$out .=
-			 "<div>" .
-				"<ul>" .
-					"<li><a href='{$addURL}' class='pw-modal pw-modal-medium'><span>{$addNoteText}</span></a></li>" .
-					"<li><a href='{$settingsURL}'><span>{$allNoteSettingsText}</span></a></li>" .
-				"</ul>" .
-
+			"<div id='dn_top_wrapper' uk-grid>" .
+				"<div class='uk-width-expand'>" .
+					$this->renderMenu() .
+				"</div>" .
+				// bulk actions
+				'<div id="dn_actions" class="dn_actions uk-width-1-3@s">'.
+					// output bulk actions markup
+					$this->renderActions().
+				'</div>' .
 			"</div>";
+		// @todo: do we need this in grids?
+		$out .= $this->renderCreateNote();
+		// @todo: renderNotes()!!! accordions? collapsible? flex? 3 columns? check nesting though! we don't want horizontal scroll!
+		$out .= $this->renderNotes();
+		// @todo: temporary; this will appear under each note
+		$out .= $this->renderReplyForm();
+
 
 		return $out;
-
-		$modules = $this->wire('modules');
-		$post = $this->wire('input')->post;
-
-		// CREATE A NEW FORM
-		$form = $modules->get('InputfieldForm');
-		$form->attr('id', 'dashboard-notes');
-		$form->action = './';
-		$form->method = 'post';
-
-		// CREATE A NEW WRAPPER
-		$w = new InputfieldWrapper;
-
-		// quick create menu markup
-		$w->add($this->buildQuickCreateMenuMarkup());
-		// menus table/list markup
-		$w->add($this->buildMenusTableMarkup());
-		// actions markup
-		if ($this->menusTotal !=0) $w->add($this->buildMenusActionsMarkup());
-
-		// add to form for rendering
-		$form->add($w);
-
-		// send input->post values to the Method save();
-		if($post->menus_action_btn || $post->menu_new_unpublished_btn || $post->menu_new_published_btn) $this->save($form);
-
-		// render the final form
-		return $form->render();
 
 	}
 
@@ -289,6 +267,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeEdit() {
 
+
+
+
 		// @TODO: MODIFY THIS TO CATER FOR EDIT VERSUS ADD NOTE! WE MIGHT WANT TO EDIT NOTE, E.G. TO CHANGE PRIORITY! WE SHOULD ALSO BE ABLE TO EDIT THE FIRST COMMENT! THIS MEANS WE'LL NEED TO SET attr('value', $value) to our inputs!
 
 		// @Todo: maybe move to init! or construct? coz we need to set js configs as well! so move there and use class properties instead
@@ -302,14 +283,21 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// create form for adding new note (page)
 		$form = $modules->get('InputfieldForm');
-		$form->attr('id', 'dn_edit_note');
+		$form->attr('id', 'dn_note_edit');
 		$form->action = './';
 		$form->method = 'post';
 		$form->description = $this->noteTitle ? '' : $this->_('New Note');
 
+		// note: page ID
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('name', 'dn_note_page_id');
+		$f->attr('value', $this->notePageID);
+
+		$form->add($f);
+
 		// note: old/current name (hidden input) @note: helps to determine if note title is changing + checks for duplication
 		$f = $modules->get('InputfieldHidden');
-		$f->attr('name', 'dn_edit_note_name');
+		$f->attr('name', 'dn_note_edit_title');
 		$f->attr('value', $this->noteTitle);
 
 		$form->add($f);
@@ -475,15 +463,9 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 
-		// post new note for saving
+		// post: saving single new or edited note
 		$post = $this->wire('input')->post;
-		if($post->dn_note_edit_btn){
-			// @todo: saving here!
-
-			// @todo: session redirect to saved new or edited note!
-			$this->save($form);
-
-		}
+		if($post->dn_note_edit_btn) $this->save($form);
 
 		return $form->render();
 
@@ -503,114 +485,309 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// @todo: maybe a default colour for notes as a setting as well?
 
-		$dashboardNotesURL = $this->wire('config')->urls->admin . "dashboard-notes/";
+		// @todo: get settingsJSON, convert to settingsArray and fill below
 
-		$backlinkText = $this->_('Back to all Notes. Add back icon here');
 
-		$out =
-			 "<div>" .
-				"<a href='{$dashboardNotesURL}'><span>{$backlinkText}</span></a>" .
+		$out = '';
+
+		// @note: currently not in use. Not much settings to justify this!
+		//return $out;
+
+		$out .=
+			"<div id='dn_top_wrapper' uk-grid>" .
+				"<div class='uk-width-expand'>" .
+					$this->renderMenu() .
+				"</div>" .
 			"</div>";
 
-		$out .= "<div>Settings for all notes. Backlink to all notes</div>";
-		return $out;
-
-
 		$modules = $this->wire('modules');
-		$post = $this->input->post;
 
-		// get the menu (page) we are editing
-		$menuID = (int) $this->wire('input')->get->id;
-		$menu = $this->wire('pages')->get("id=$menuID, parent=$this->dashboardNotesParent, include=all");// only get menu pages!
-
+		// create form for all notes settings
 		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_note_settings');
+		$form->action = './';
+		$form->method = 'post';
+		$form->description = $this->_('Settings');
 
-		// if we found a valid menu page
-		if($menu->id) {
+		/* ## notes date format ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_date');
+		$f->attr('value', 1);// @todo: here and below, saved settings values!
+		$f->label =  $this->_('Date Format');
+		$f->notes = $this->_('Display format for note created dates.');
 
-			// menu settings
-			$this->dashboardNotesSettings = $menu->dashboard_notes_settings ? json_decode($menu->dashboard_notes_settings, true) : array();
-			// fetch this menu's JSON string with menu pages properties (pages find selector and inputfield to use)
-			$this->menuPages = $menu->menu_pages ? json_decode($menu->menu_pages, true) : array();
-			// fetch this menu's JSON string with menu items properties
-			$this->menuItems = $menu->menu_items ? json_decode($menu->menu_items, true) : array();
-			// if multilingual, active MB languages
-			$this->menuItemsLanguages = isset($this->menuPages['menu_items_languages']) ? $this->menuPages['menu_items_languages'] : null;
+		$day = $this->_('Day');
+		$month = $this->_('Month');
+		$year = $this->_('Year');
 
-			##############################
+		$radioOptions = array (
+			1 => "$day $month $year (30/04/2015)",
+			2 => "$year $month $day (2015/04/30)",
+			3 => "$month $day $year (04/30/2015)",
+		);
 
-			$this->nestedSortableConfigs();
-			$this->menuConfigs();// @note: we check if user has right permission in the method itself
+		$f->addOptions($radioOptions);
 
-			// check if menu is published or not
-			$menu->is(Page::statusUnpublished) ? $pubStatus = 1 : $pubStatus = '';
+		$form->add($f);
 
-			// check if menu is locked for editing
-			$menu->is(Page::statusLocked) ? $editStatus = 1 : $editStatus = '';
+		/* ## notes date month label ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_date_month_label');
+		$f->attr('value', 1);// @todo: here and below, saved settings values!
+		$f->label =  $this->_('Date Month Label');
+		$f->notes = $this->_('Specify if to show month name or number in notes\' dates.');
 
-			$editStatusNote = $editStatus ? $this->_(' (locked)') : '';
+		$monthName = $this->_('Month Name');
+		$monthNumber = $this->_('Month Number');
 
-			// add a breadcrumb that returns to our main page @todo - don't show non-superadmins breadcrumbs?
-			$this->breadcrumbs->add(new Breadcrumb('../', $this->wire('page')->title));
-			$this->headline(sprintf(__('Edit menu: %s'), $menu->title) . $editStatusNote); // headline when editing a menu
+		$radioOptions = array (
+			1 => "$monthNumber (30/04/2015)",
+			2 => "$monthName (30 April 2015)",
+		);
 
-			$form->attr('id', 'MenuBuilderEdit');
-			$form->action = './';
-			$form->method = 'post';
+		$f->addOptions($radioOptions);
 
-			############################################ - prep for tabs - ############################################
+		$form->add($f);
 
-			$menuPages = $this->menuPages;
+		/* ## notes default background colour ## */
+		$colourMarkup = "<div id='dn_colour_picker'></div>";
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $colourMarkup);
+		$f->label = $this->_('Default Colour');
+		$f->notes = $this->_('Pick a default background colour for all notes. Default is no background colour');
 
-			// set include children + disable items status + for users with right permission
-			if(count($menuPages)) {
-				// enable include children feature
-				if(isset($menuPages['children']) && $this->wire('user')->hasPermission('dashboard-notes-include-children')) {
-					$this->includeChildren = $menuPages['children'];
-				}
-				// enable 'enable/disable' items feature
-				if(isset($menuPages['disable_items']) && $this->wire('user')->hasPermission('dashboard-notes-disable-items')) {
-					$this->disableItems = $menuPages['disable_items'];
-				}
-			}
+		$form->add($f);
 
-			/***************** Add input buttons to Fourth tab *****************/
+		// hidden input to store selected default note background colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_colour');
+		$f->attr('value', 0);
+		$form->add($f);
 
-			$m = $modules->get('InputfieldHidden');
-			$m->attr('name', 'menu_id');
-			$m->attr('value', $menuID);
-			$form->add($m);
+		/* ## notes display sort ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_sort');
+		$f->attr('value', 1);// @todo: here and below, saved settings values!
+		$f->label =  $this->_('Display Sort');
+		$f->notes = $this->_('How to sort display of notes.');
 
-			$m = $modules->get('InputfieldSubmit');
-			$m->class .= ' head_button_clone';
-			$m->attr('id+name', 'menu_save');
-			$m->class .= " menu_save";// add a custom class to this submit button
-			$m->attr('value', $this->_('Save'));
-			$form->add($m);
+		$radioOptions = array (
+			1 => $this->_('Date'),
+			2 => $this->_('Title'),
+			// @todo: unsure about this since requires setting priority as a note page propery during runtime
+			3 => $this->_('Priority'),
+		);
 
-			$m = $modules->get('InputfieldSubmit');
-			$m->attr('id+name', 'menu_save_exit');
-			$m->class .= " ui-priority-secondary";
-			$m->class .= " menu_save";// add a custom class to this submit button
-			$m->attr('value', $this->_('Save & Exit'));
-			$form->add($m);
+		$f->addOptions($radioOptions);
 
-			return $form->render();
+		$form->add($f);
 
-		}// end if $menu
+		/* ## notes sort direction ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_sort_direction');
+		$f->attr('value', 2);// @todo: here and below, saved settings values!
+		$f->label =  $this->_('Sort Direction');
 
+		$radioOptions = array (
+			1 => $this->_('Ascending'),
+			2 => $this->_('Descending'),
+		);
 
-		############################################ - if input->post - ############################################
+		$f->addOptions($radioOptions);
 
-		// if saving menu
-		elseif($post->menu_save || $post->menu_save_exit || $post->note_delete) $this->save($form);
-		// else invalid menu ID or no ID provided (e.g. /edit/)
-		else $this->wire('session')->redirect($this->wire('page')->url);// redirect to landing page
+		$form->add($f);
+
+		/* ## notes delete each others' ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_delete_others');
+		$f->attr('value', 1);// @todo: here and below, saved settings values!
+		$f->label =  $this->_('Users Can Delete Notes They Did Not Create?');
+		$f->notes = $this->_('Specify if users can delete each others notes.');
+
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
+
+		$f->addOptions($radioOptions);
+
+		$form->add($f);
+
+		/* ## notes maximum display per page ## */
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_max_display');
+		$f->attr('value', 12);
+		$f->label = $this->_('Display Limit');// @todo: change label?
+		$f->description = $this->_('Maximum number of notes to display per page.');
+
+		$form->add($f);
+
+		/* ## note maximum reply depth ## */
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_max_reply_depth');
+		$f->attr('value', 0);// 0 = no maximum
+		$f->label = $this->_('Reply Depth');// @todo: change label?
+		$f->description = $this->_('Maximum allowed nested depth for replies to notes.');
+
+		$form->add($f);
+
+		// post: saving all note settings
+		$post = $this->wire('input')->post;
+		if($post->dn_note_settings_btn) $this->saveSettings($form);
+
+		$out .= $form->render();
+
+		return $out;
 
 	}
 
 
 	/* ######################### - RENDER/MARKUP - ######################### */
+
+	/**
+	 * Render navigation for module pages use.
+	 *
+	 * @access private
+	 * @return string $out Markup of rendered navigation.
+	 *
+	 */
+	private function renderMenu() {
+
+		$allNotesURL = $this->baseURL;
+		//$allNotesURL = $this->baseURL . "/edit/?modal=1";
+		$settingsURL = $this->baseURL . "/settings/";
+
+		$allNotesText = $this->_('Notes');
+		//$addNoteText = $this->_('Notes');
+		$allNoteSettingsText = $this->_('Settings');
+
+		$menuItemsArray = array(
+
+			'all' => array( 'href' => $this->baseURL, 'link_text' => $allNotesText),
+			'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
+
+		);
+
+		bd($this->urlSeg1, 'URL SEG 1');
+
+		$menuItems = '';
+		$on = " class='dn_on uk-active'";
+		$off = "";
+		foreach ($menuItemsArray as $key => $value) {
+			$href = $value['href'];
+			$linkText = $value['link_text'];
+			$class = '';
+			if(!$this->urlSeg1 && $key != 'settings') $class = $on;
+			elseif($this->urlSeg1 && $this->urlSeg1 == $key) $class = $on;
+
+			$menuItems .= "<li><a href='{$href}'$class><span>{$linkText}</span></a></li>";
+		}
+
+		$out =
+				"<nav class='uk-navbar-container uk-navbar-transparent' uk-navbar>" .
+					"<div id='dn_menu' class='uk-navbar-left'>".
+						"<ul class='nav uk-navbar-nav pw-primary-nav'>" .
+							$menuItems .
+						"</ul>" .
+					"</div>" .
+				"</nav>";
+
+
+		return $out;
+	}
+
+	/**
+	 * Builds the actions input for notes.
+	 *
+	 * @access private
+	 * @return string $out Markup of actions panel.
+	 *
+	 */
+	private function renderActions() {
+
+		// bulk actions
+		$actions = array(
+			'lock' => $this->_('Lock'),
+			'unlock' => $this->_('Unlock'),
+			'priority_low' => $this->_('Low Priority'),
+			'priority_normal' => $this->_('Normal Priority'),
+			'priority_high' => $this->_('High Priority'),
+			'trash' => $this->_('Trash'),
+			'delete' => $this->_('Delete'),
+		);
+
+		$out = '';
+
+
+		$modules = $this->wire('modules');
+
+		// select dropdown
+		$label = '<label id="dn_action_select_label" for="dn_action_select">' . $this->_("Action") . '</label>';
+		$f = $modules->get('InputfieldSelect');
+		$f->attr('id+name', 'dn_action_select');
+		$f->addOptions($actions);
+		$out .= $f->render() . $label;
+
+		// button
+		$f = $modules->get('InputfieldButton');
+		$f->attr('id+name', 'dn_actions_btn');
+		$f->icon = 'check-square-o';
+		$f->attr('data-media-action', 'save');
+		$f->showInHeader();
+		$f->class .= ' dn_hide';// @todo: add to css!
+		$f->attr('value', $this->_('Apply'));
+		$out .=  $f->render();
+
+
+		return $out;
+
+	}
+
+	/**
+	 * Render markup for link to create new note.
+	 *
+	 * @access private
+	 * @return string $out Markup of link to create new note.
+	 *
+	 */
+	private function renderCreateNote() {
+		$createNoteText = $this->_('New Note');
+		$createNoteURL = $this->baseURL . "/edit/?modal=1";
+		$out = "<a href='{$createNoteURL}' class='ui-helper-clearfix pw-modal pw-modal-medium'><i class='fa fa-fw fa-plus-circle'></i>{$createNoteText}</a>";
+		return $out;
+	}
+
+	private function renderNotes() {
+
+		// @todo: work on limits,sort,etc
+		$notes = $this->wire('pages')->find("template=dashboard-note,include=all,parent!=7,limit=12");
+		if(!$notes->count()) return $this->_('No notes found. Add one to get started.');
+
+
+		$out = '';
+
+	/* 	<div class='uk-flex'>
+		<div class='uk-card uk-card-default uk-card-body'>Item 1</div>
+		<div class='uk-card uk-card-default uk-card-body uk-margin-left'>Item 2</div>
+		<div class='uk-card uk-card-default uk-card-body uk-margin-left'>Item 3</div>
+		</div> */
+
+		$out .= "<div class='uk-flex uk-flex-wrap uk-flex-wrap-around'>";
+
+		$i = 0;
+		foreach ($notes as $note) {
+			// add margin left if required
+			$classMarginLeft = $i ? " uk-margin-left" : "";
+			$out .= "<div class='uk-card uk-card-default uk-card-body{$classMarginLeft}'>{$note->title}</div>";
+			$i++;
+		}
+
+		$out .= "</div>";
+
+		return $out;
+
+
+	}
 
 
 	/**
@@ -689,7 +866,40 @@ class ProcessDashboardNotes extends Process implements Module {
 
         return $out;
 
-    }
+	}
+
+	/**
+	 * Render markup of a note or comment's reply form.
+	 *
+	 * This is used for both when replying to the note itself or when replying to other comments (i.e. comment with a parent ID).
+	 * When replying to other replies, this form is cloned on the fly using JavaScript.
+	 *
+	 * @access private
+	 * @return void
+	 */
+	private function renderReplyForm() {
+
+		$out =
+			"<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' style='display: flex;'>" .
+				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+					"<label>" .
+						"<span class='uk-form-label'>". $this->_('Response') . "</span>" .
+						"<textarea name='text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
+					"</label>" .
+				"</div>" .
+				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+					"<button type='submit' class='uk-button uk-button-primary' name='{dn_note_reply_btn}' value='1'>" .
+						$this->_('Reply') .
+					"</button>" .
+					// @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
+					"<input type='hidden' name='dn_note_page_id' value='0'>" .
+					"<input type='hidden' name='dn_note_parent_id' value='0'>" .
+				"</div>" .
+			"</form>";
+
+		return $out;
+
+	}
 
 
 
@@ -713,60 +923,15 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 		// save new note or edit existing note
-		if ($post->dn_note_edit_btn)$this->saveNote($post);
+		if ($post->dn_note_edit_btn) $this->saveNote($post);
 		// notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
-		elseif($post->dn_note_actions_btn) $this->bulkActionsNote($post);
+		elseif($post->dn_actions_btn) $this->bulkActionsNote($post);
 		// save: note replies
 		elseif($post->dn_note_reply || $post->dn_note_reply_btn) $this->saveNoteReply($post);
 		// save: note settings
 		elseif ($post->dn_note_settings_btn) $this->saveSettings($post);
 
 	}
-
-	/**
-	 * Delete a single menu item. @todo: bulk trash those marked for trash? I think so!
-	 *
-	 * @access private
-	 * @param integer $menuID ID of the Menu to delete.
-	 *
-	 */
-	private function noteDelete($menuID) {
-
-		if($menuID) {
-
-			$page = $this->wire('page');
-			$pages = $this->wire('pages');
-
-			// if user does not have permission to trash/delete a menu, exit with an error
-			if ($this->wire('permissions')->get('dashboard-notes-delete')->id && !$this->wire('user')->hasPermission('dashboard-notes-delete')) {
-				$this->error($this->_('Dashboard Notes: You have no permission to delete menus.'));
-				$this->session->redirect($page->url. 'edit/?id=' . $menuID);// redirect back to the menu we were editing
-			}
-
-			$menu = $pages->get("id=$menuID, parent=$this->dashboardNotesParent, include=all");
-
-			// if menu is locked for editing, exit with an error
-			if($menu->is(Page::statusLocked)) {
-				$this->error($this->_('Dashboard Notes: This menu is locked for edits.'));
-				$this->session->redirect($page->url. 'edit/?id=' . $menuID);// redirect back to the menu we were editing
-			}
-
-			if($pages->trash($menu)) {
-				// also delete cache of menu if present
-				$this->deleteMenuCache($menu->id);
-				$this->message(sprintf($this->_('Dashboard Notes: Moved menu %1$s to trash: %2$s'), $menu->title, $menu->url));// tell user menu trashed
-				$this->session->redirect($page->url);
-			}
-
-			else {
-				$this->error($this->_('Dashboard Notes: Unable to move menu to trash'));// menu can't be moved to the trash error
-				return false;
-			}
-
-		}
-
-	}
-
 
 	/**
 	 * Save new menus.
@@ -776,53 +941,121 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @access private
 	 *
 	 */
-	private function saveNewMenu($post) {
+	private function saveNote($post) {
 
+
+		$pages = $this->wire('pages');
 		$sanitizer = $this->wire('sanitizer');
-		$addMenus = $post->menus_add_text;// $addMenus will be a string of text separated by a new line (\n).
-		$newUnpublishedBtn = $post->menu_new_unpublished_btn;
 
-		if ($addMenus) {
+		$noteTitle = $sanitizer->text($post->dn_note_title);
+		$noteName = $sanitizer->pageName($noteTitle);
+		$noteText = $sanitizer->textarea($post->dn_note_text);
+		$nameClash = false;
 
-			$failed = array();
-			$menus = explode("\n", $addMenus);// convert to an array
 
-			// Sanitize and save new menus
+		// redirect back if no title or no text
+		if (!$noteTitle || !$noteText)  {
+			// error here, redirect!
+		}
 
-			$i = 0;// set counter for number of menus added
-			foreach ($menus as $m) {
-				$p = new Page();
-				$p->parent = $this->dashboardNotesParent;
-				$p->template = $this->wire('templates')->get("menus");
-				$p->title = $sanitizer->text($m);
-				if (!$p->title) continue;// skip to next if no title provided
-				if ($p->title) $p->name = $sanitizer->pageName($p->title);// sanitize and convert to a URL friendly page name
+		/* @TODO: DELETE WHEN DONE
 
-				// check if name already taken
-				if($p->parent->child("name={$p->name}, include=all")->id) {
-					// if the name already exists, add it to the $failed array [to display to user in error message later] and skip to next title
-					$failed [] = $p->title;
-					continue;
-				}
+		$dirtyNoteColour =  $post->dn_note_colour;
+		$cleanNoteColour = str_replace( array("rgba(", ")"), "", $post->dn_note_colour );
+		bd($dirtyNoteColour, 'DIRTY NOTE COLOUR');
+		bd($cleanNoteColour, 'CLEAN NOTE COLOUR');*/
 
-				// if user pressed 'save unpublished', we save new menus unpublished
-				if ($newUnpublishedBtn) $p->addStatus(Page::statusUnpublished);
-				$p->save();
-				$i++;
+		$parent = $this->wire('page')->child('include=all');
 
-			}// end foreach $menus as $m
 
-			// create a string of "failed" menu titles to add to error message
-			$failedTitles = implode(', ', $failed);
+		// settings
+		$settingsArray = array();
+		$settingsArray['text'] = $noteText;
+		$settingsArray['priority'] = (int) $post->dn_note_priority;
+		$settingsArray['colour'] = str_replace( array("rgba(", ")"), "", $post->dn_note_colour );
+		$settingsArray['reply'] = (int) $post->dn_note_allow_replies;
+		$noteLimit = (int) $post->dn_note_visibility_limit;
+		$settingsArray['limit'] = $noteLimit;
+		$limitIDs = array();
 
-			if($i > 0) $this->message(sprintf(_n("Added %d new menu.", "Added %d new menus.", $i), $i));// tell user how many menus were added
-			if($failedTitles) $this->error($this->_("Some menus not added because names already in use. These are: {$failedTitles}."));
-			$this->session->redirect($this->wire('page')->url);// redirect to landing page
+		if(2 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_role);
+		elseif(3 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_permission);
+		elseif(4 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_users);
+		$settingsArray['limit_ids'] = $limitIDs;
 
-		}// end if $addMenus
+		$notePageID = (int) $post->dn_note_page_id;
 
-		// show error message if add button clicked without first entering some categories to add
-		else $this->error($this->_("Dashboard Notes: You need to add some menus."));
+		bd($notePageID, 'note page ID');
+
+		// new note
+		if(!$notePageID ) {
+			$page = new Page();
+			$page->template = "dashboard-note";
+			$page->parent = $parent;
+			// sanitize and convert to a URL friendly page name
+			if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
+			bd('New Page');
+			#exit;
+
+		}
+
+		// existing note
+		else {
+			$page = $pages->get($notePageID);
+			bd($page->id, 'Existing Note Page');
+
+
+			// redirect with error
+			if(!$page) {
+				// @note: redirect with error (in modal, so no messages!)
+			}
+
+			if($page->title != $noteTitle) {
+				if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
+			}
+
+		}
+
+		/*@TODO: STOPPED HAPA: THIS IS NOT WORKING FOR EDITS: WE NEED TO REDIRECT IN THIS CASE IF ONLY FOLLOWING ARE TRUE:
+
+		1. if we are creating a new note and the name clashes with existing; redirect to somewhere without &id
+		2. if we are editing a note and the old title IS NOT EQUAL to the new title AND the changed name clashes with existing; redirect back to edit form with &id=$page->id;
+
+		STILL NOT WORKING; REDIRECT IS WRONG; WE ARE NOT GETTIN ID IN PARAM STRING; WE ARE GETTING ZERO; MAYBE WE NEED TO WHITELIST OR MAYBE NEED TO SAVE TO VARIABLE?*/
+
+		bd($nameClash, 'nameClash');
+
+
+
+		if($nameClash) {
+			// redirect
+			$this->wire('session')->redirect($this->baseURL . "/edit/?modal=1&id={$page->id}");
+		}
+
+		// check if name already taken
+		/*if($page->parent->child("name={$page->name}, include=all")->id) {
+			// if the name already exists, add it to the $failed array [to display to user in error message later] and skip to next title
+			// @todo: error! name taken!
+			// redirect
+			// @todo: need to deal with losing text already entered! How to recover them?
+			$this->wire('session')->redirect($this->baseURL . "/edit/?modal=1&id={$page->id}");
+		}*/
+
+		$page->title = $noteTitle;
+		$page->name = $noteName;
+
+		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// wont save empties
+		$page->dashboard_notes_settings = $settingsJSON;
+		$page->save();
+
+		// redirect
+		$this->wire('session')->redirect($this->baseURL . "/edit/?modal=1&id={$page->id}");
+
+
+
+
+
+
 
 	}
 
@@ -891,16 +1124,20 @@ class ProcessDashboardNotes extends Process implements Module {
 			$page = $this->wire('pages')->get($notePageID);
 			if($page) {
 				$sanitizer = $this->wire('sanitizer');
+				$this->notePageID = $notePageID;
 				$this->noteTitle = $page->title;
 				// ## settings ##
 				$settingsArray = json_decode($page->dashboard_notes_settings, true);
 				// text
 				// @todo? no need for rich text, no?
-				$this->noteText = $sanitizer->text($settingsArray['text']);
+				$this->noteText = $sanitizer->textarea($settingsArray['text']);
 				// priority
 				$this->notePriority = (int) $settingsArray['priority'];
 				// background colour
-				$this->noteColour = $sanitizer->text($settingsArray['colour']);
+				if(isset($settingsArray['colour'])) {
+					$this->noteColour = $sanitizer->text($settingsArray['colour']);
+				}
+
 				// allow replies
 				$this->noteReply = (int) $settingsArray['reply'];
 				// visibility limit
@@ -911,6 +1148,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		else {
+			$this->notePageID = 0;
 			$this->noteTitle = '';
 			$this->noteText = '';
 			$this->notePriority = 2;// 'normal'

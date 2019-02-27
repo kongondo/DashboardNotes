@@ -137,6 +137,8 @@ function ProcessDashboardNotes($) {
 		if (typeof Pickr !== 'undefined') {
 			initColourPicker()
 		}
+
+		// @todo: refresh parent page on modal (add/edit note) close
 	}
 
 	// initialise script

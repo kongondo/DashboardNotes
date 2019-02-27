@@ -9,6 +9,8 @@
  *
  */
 
+.dn_hide {display: none !important;}
+
 /** html **/
 /* Prevent "jump" on shorter pages */
 html {overflow-y:scroll;}
@@ -21,14 +23,23 @@ html {overflow-y:scroll;}
 
 
 /** input **/
+select#dn_action_select, label#dn_action_select_label {float: right;}
+
+select#dn_action_select {
+    /* margin-right: 0.75em; */
+    width: 150px;
+}
 
 /** label **/
+label#dn_action_select_label {/* margin-left: 1em;  */margin-right: 0.25em; display: inline-block; vertical-align: top;}
+
 
 
 /** button **/
 /* @todo: revisit these! here we override PW admin theme styling of our colour picker buttons */
 .pcr-app .pcr-interaction .pcr-save {background: #4285f4 !important;}
 .pcr-app .pcr-interaction .pcr-clear {background: #f44250 !important;}
+button#dn_actions_btn {display: none;}
 
 
 
@@ -36,5 +47,10 @@ html {overflow-y:scroll;}
 
 
 /** anchor **/
+div#dn_menu ul li a:first-child {padding-left: 0;}
+div#dn_menu a.dn_on {
+    color: #354b60;
+    font-weight: bold;
+}
 
 /** i **/
