@@ -379,7 +379,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		/* ## note replies ## */
 		$f = $modules->get('InputfieldRadios');
-		$f->attr('name', 'dn_note_allow_reply');
+		$f->attr('name', 'dn_note_allow_replies');
 		$f->attr('value', $this->noteReply);
 		$f->label =  $this->_('Allow Replies');
 		$f->notes = $this->_('Specify if others can reply to this note.');
@@ -418,7 +418,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// note visibility: by role
 		$f = $modules->get('InputfieldAsmSelect');
-		$f->attr('name', "dn_limit_role");
+		$f->attr('name', "dn_note_limit_role");
 		$f->attr('value', (2 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Roles Limit');
 		$f->description = $this->_("Select roles allowed to view this note.");
@@ -433,7 +433,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// note visibility: by permission
 		$f = $modules->get('InputfieldAsmSelect');
-		$f->attr('name', "dn_limit_permission");
+		$f->attr('name', "dn_note_limit_permission");
 		$f->attr('value', (3 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Permissions Limit');
 		$f->description = $this->_("Select permissions allowed to view this note.");
@@ -448,7 +448,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// note visibility: by permission
 		$f = $modules->get('InputfieldAsmSelect');
-		$f->attr('name', "dn_limit_users");
+		$f->attr('name', "dn_note_limit_users");
 		$f->attr('value', (4 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Users Limit');
 		$f->description = $this->_("Select users who can view this note.");
@@ -467,7 +467,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// new note: submit button
 		$f = $modules->get('InputfieldButton');
-		$f->attr('id+name', 'dn_new_note_btn');
+		$f->attr('id+name', 'dn_note_edit_btn');
 		$f->value = $this->_('Save');
 		$f->attr('type', 'submit');
 
@@ -477,10 +477,11 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// post new note for saving
 		$post = $this->wire('input')->post;
-		if($post->dn_new_note_btn){
+		if($post->dn_note_edit_btn){
 			// @todo: saving here!
 
 			// @todo: session redirect to saved new or edited note!
+			$this->save($form);
 
 		}
 
@@ -710,17 +711,15 @@ class ProcessDashboardNotes extends Process implements Module {
 		// process form
 		$form->processInput($post);
 
-		$menuID = (int) $post->menu_id;
-		$menuDeleteConfirm = (int) $post->menu_delete_confirm;// checkbox to confirm trash
 
-		// save new menu(s)
-		if ($post->menu_new_unpublished_btn || $post->menu_new_published_btn)$this->saveNewMenu($post);
-		// menus bulk actions: lock/unlock and trash/delete are controlled by permissions
-		elseif($post->menus_action_btn) $this->bulkActionsMenu($post);
-		// save single specified menu
-		elseif($post->menu_save || $post->menu_save_exit) $this->saveSingleMenu($menuID, $post);
-		// delete menu
-		elseif ($post->note_delete) $this->noteDelete($menuDeleteConfirm);
+		// save new note or edit existing note
+		if ($post->dn_note_edit_btn)$this->saveNote($post);
+		// notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
+		elseif($post->dn_note_actions_btn) $this->bulkActionsNote($post);
+		// save: note replies
+		elseif($post->dn_note_reply || $post->dn_note_reply_btn) $this->saveNoteReply($post);
+		// save: note settings
+		elseif ($post->dn_note_settings_btn) $this->saveSettings($post);
 
 	}
 
