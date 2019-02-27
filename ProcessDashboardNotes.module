@@ -91,6 +91,15 @@ class ProcessDashboardNotes extends Process implements Module {
 	// multilingual
 	private $menuItemsLanguages;
 
+	private $noteTitle;
+	private $noteText;
+	private $notePriority;
+	private $noteColour;
+	private $noteReply;
+	private $noteVisibilityLimit;
+	private $noteLimitIDs;
+
+
 	/**
 	 * Initialise the module. This is an optional initialisation method called before any execute methods.
 	 *
@@ -101,6 +110,34 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function init() {
 
+		// @todo: delete when done!
+
+		/*
+		$page = $this->wire('pages')->get(1297);
+		$user = $this->wire('user');
+
+		$c = new Comment();
+		$c->text = 'Can anyone tell me what day it is please? I just gotta know.';
+		$c->cite = $user->get('title|name');
+		$c->email = $user->email;// do we need this?
+		//$c->website = '';
+		//$c->stars = 78;
+		//$c->upvotes = 41;
+		//$c->downvotes = 3;
+		//$c->parent_id = 165; // or another comment's id
+		//$c->parent_id = 0; // or another comment's id
+		//$c->status = Comment::statusApproved;
+		//$c->status = 1;
+		// $c->ip = '127.0.0.1';
+		// $c->user_agent = 'Chrome';
+		$c->created_users_id = $user->id;
+
+		$page->of(false);
+		$page->dashboard_note->add($c);
+		//$page->save('dashboard_note');
+		$page->of(true);
+		exit;*/
+
 		$user = $this->wire('user');
 
 		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
@@ -109,14 +146,14 @@ class ProcessDashboardNotes extends Process implements Module {
 		$sanitizer = $this->wire('sanitizer');
 		$urlSeg =  $sanitizer->pageName($this->wire('input')->urlSegment1);
 		// add color picker
-		if('add' == $urlSeg) {
+		if('edit' == $urlSeg) {
+			$this->setNoteValues();
 			$this->scriptConfigurations();
 			$config = $this->wire('config');
 			$url = $config->urls->ProcessDashboardNotes;
-			$config->styles->add($url . "vendor/pickr.min.css");
-			$config->scripts->add($url . "vendor/pickr.min.js");
+			$config->styles->add($url . "vendor/pickr/pickr.min.css");
+			$config->scripts->add($url . "vendor/pickr/pickr.min.js");
 		}
-
 
 		$modules = $this->wire('modules');
 		$modules->get("Jquery");
@@ -156,10 +193,12 @@ class ProcessDashboardNotes extends Process implements Module {
 		// translatable strings for use in JS
 		$colourPickerSave = $this->_('Save');
 		$colourPickerClear = $this->_('Clear');
+		$noteColour = 0 === $this->noteColour ? $this->noteColour : "rgba({$this->noteColour})";
 
 		// options for ajax calls
 		$options = array('config' =>
 			array(
+				'colourPickerDefaultColour' => $noteColour,
 				'colourPickerSave' => $colourPickerSave,
 				'colourPickerClear' => $colourPickerClear,
 			)
@@ -171,7 +210,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-	/* ######################### - MARKUP BUILDERS - ######################### */
+	/* ######################### - VIEWS - ######################### */
 
 	/**
 	 * Displays a list of the menus.
@@ -186,8 +225,12 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$out = '';
 
+		// @todo: delete when done
+		$id = "&id=1297";
+		$id = "";
+
 		$baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
-		$addURL = $baseURL . "/add/?modal=1";
+		$addURL = $baseURL . "/edit/?modal=1{$id}";
 		$settingsURL = $baseURL . "/settings/";
 
 		$addNoteText = $this->_('Add note');
@@ -244,35 +287,49 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $form Form markup.
 	 *
 	 */
-	public function ___executeAdd() {
+	public function ___executeEdit() {
 
 		// @TODO: MODIFY THIS TO CATER FOR EDIT VERSUS ADD NOTE! WE MIGHT WANT TO EDIT NOTE, E.G. TO CHANGE PRIORITY! WE SHOULD ALSO BE ABLE TO EDIT THE FIRST COMMENT! THIS MEANS WE'LL NEED TO SET attr('value', $value) to our inputs!
+
+		// @Todo: maybe move to init! or construct? coz we need to set js configs as well! so move there and use class properties instead
+
+		// @todo: reject save if no title or no text! and redirect to where we were.
+
+		// @todo: title change hidden input!
 
 
 		$modules = $this->wire('modules');
 
-
 		// create form for adding new note (page)
 		$form = $modules->get('InputfieldForm');
-		$form->attr('id', 'dn_new_note');
+		$form->attr('id', 'dn_edit_note');
 		$form->action = './';
 		$form->method = 'post';
-		$form->description = $this->_('New Note');
+		$form->description = $this->noteTitle ? '' : $this->_('New Note');
+
+		// note: old/current name (hidden input) @note: helps to determine if note title is changing + checks for duplication
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('name', 'dn_edit_note_name');
+		$f->attr('value', $this->noteTitle);
+
+		$form->add($f);
 
 		// new note: title (text)
 		$f = $modules->get('InputfieldText');
 		$f->attr('name', 'dn_note_title');
-		$f->description = $this->_('Note title.');
+		$f->attr('value', $this->noteTitle);
+		$f->description = $this->_('A title is required.');
 		$f->label = $this->_('Title');
 		$f->required = true;
 
 		$form->add($f);
 
-		// new note: inputfield selector
+		// new note: inputfield textarea
 		$f = $modules->get('InputfieldTextarea');
 		$f->attr('name', 'dn_note_text');
+		$f->attr('value', $this->noteText);
 		$f->label = $this->_('Text');// @todo: change label?
-		$f->description = $this->_('Note text.');
+		$f->description = $this->_('Contents of your note. This is required.');
 		$f->required = true;
 		$f->rows = 5;
 
@@ -281,17 +338,15 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		######## SETTINGS #######
 
-
 		$fieldset = $modules->get('InputfieldFieldset');
 		$fieldset->attr('id', 'dn_note_settings');
 		$fieldset->label = $this->_('Settings');
 		$fieldset->collapsed = Inputfield::collapsedYes;
 
 		/* ## note priority ## */
-
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_priority');
-		$f->attr('value', 2);
+		$f->attr('value', $this->notePriority);
 		$f->label =  $this->_('Priority');
 		$f->notes = $this->_('Specify note priority/urgency.');
 
@@ -307,11 +362,8 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$fieldset->add($f);
 
-		//@todo: add colour picker for note colour!
 		/* ## note background colour ## */
-
 		$colourMarkup = "<div id='dn_colour_picker'></div>";
-
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $colourMarkup);
 		$f->label = $this->_('Colour');
@@ -322,14 +374,31 @@ class ProcessDashboardNotes extends Process implements Module {
 		// hidden input to store selected/set note background colour. a value of 0 means no colour set.
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_colour');
-		$f->attr('value', 0);
+		$f->attr('value', $this->noteColour);// @todo: rgb?
+		$fieldset->add($f);
+
+		/* ## note replies ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_allow_reply');
+		$f->attr('value', $this->noteReply);
+		$f->label =  $this->_('Allow Replies');
+		$f->notes = $this->_('Specify if others can reply to this note.');
+
+		// @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
+
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
+
+		$f->addOptions($radioOptions);
+
 		$fieldset->add($f);
 
 		/* ## note visibility ## */
-
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_visibility_limit');
-		$f->attr('value', 1);
+		$f->attr('value', $this->noteVisibilityLimit);
 		$f->label =  $this->_('Visibility');
 		//$f->collapsed = Inputfield::collapsedYes;
 		$f->notes = $this->_('Specify who should be able to view this note. You can limit by roles, permissions or users. Otherwise, the note will be visible to all who can access Dashboard Notes.');
@@ -350,7 +419,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// note visibility: by role
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_limit_role");
-		//$f->collapsed = Inputfield::collapsedYes;
+		$f->attr('value', (2 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Roles Limit');
 		$f->description = $this->_("Select roles allowed to view this note.");
 		$f->showIf = 'dn_note_visibility_limit=2';
@@ -365,7 +434,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// note visibility: by permission
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_limit_permission");
-		//$f->collapsed = Inputfield::collapsedYes;
+		$f->attr('value', (3 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Permissions Limit');
 		$f->description = $this->_("Select permissions allowed to view this note.");
 		$f->showIf = 'dn_note_visibility_limit=3';
@@ -380,7 +449,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// note visibility: by permission
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_limit_users");
-		//$f->collapsed = Inputfield::collapsedYes;
+		$f->attr('value', (4 == $this->noteVisibilityLimit ? $this->noteLimitIDs : array()));
 		$f->label = $this->_('Users Limit');
 		$f->description = $this->_("Select users who can view this note.");
 		$f->showIf = 'dn_note_visibility_limit=4';
@@ -411,6 +480,8 @@ class ProcessDashboardNotes extends Process implements Module {
 		if($post->dn_new_note_btn){
 			// @todo: saving here!
 
+			// @todo: session redirect to saved new or edited note!
+
 		}
 
 		return $form->render();
@@ -428,6 +499,8 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 */
 	public function ___executeSettings() {
+
+		// @todo: maybe a default colour for notes as a setting as well?
 
 		$dashboardNotesURL = $this->wire('config')->urls->admin . "dashboard-notes/";
 
@@ -589,7 +662,7 @@ class ProcessDashboardNotes extends Process implements Module {
                             "</header>" .
                             "<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
 
-                            // @todo: amend this! No need for some of the stuff here?
+                            // @todo: amend this! No need for some of the stuff here? Do we need the line?
                             "<div class='dn_note_comment_footer uk-margin-small-top uk-text-small'>" .
                             "<p class='dn_note_comment_action uk-margin-small'>" .
                                 "<a class='dn_note_comment_action_reply' data-comment-id='{$comment->id}' href='#'>" .
@@ -757,9 +830,11 @@ class ProcessDashboardNotes extends Process implements Module {
 	/* ######################### - GETTERS - ######################### */
 
 	/**
-	 * Undocumented function @todo
+	 * Get all roles (minus guest) for selection for note visibility.
 	 *
+	 * @access private
 	 * @return void
+	 *
 	 */
 	private function getRoles() {
 		$roles = array();
@@ -771,9 +846,11 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Undocumented function @todo
+	 * Get all permissions for selection for note visibility.
 	 *
+	 * @access private
 	 * @return void
+	 *
 	 */
 	private function getPermissions() {
 		$permissions = array();
@@ -784,17 +861,66 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Undocumented function @todo
+	 * Get all users (minus guests) for selection for note visibility.
 	 *
+	 * @access private
 	 * @return void
+	 *
 	 */
 	private function getUsers() {
 		$users = array();
 		foreach($this->wire('users') as $user) {
-			if($user->name == 'guest') continue;
+			if(!$user->hasRole('superuser') && $user->hasRole('guest')) continue;
 			$users[$user->id] = $user->name;
 		}
 		return $users;
+	}
+
+	/* ######################### - SETTERS - ######################### */
+
+	/**
+	 * Set class properties for adding versus editing a note.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */
+	private function setNoteValues() {
+
+		$notePageID = (int) $this->wire('input')->get->id;
+		if($notePageID) {
+			$page = $this->wire('pages')->get($notePageID);
+			if($page) {
+				$sanitizer = $this->wire('sanitizer');
+				$this->noteTitle = $page->title;
+				// ## settings ##
+				$settingsArray = json_decode($page->dashboard_notes_settings, true);
+				// text
+				// @todo? no need for rich text, no?
+				$this->noteText = $sanitizer->text($settingsArray['text']);
+				// priority
+				$this->notePriority = (int) $settingsArray['priority'];
+				// background colour
+				$this->noteColour = $sanitizer->text($settingsArray['colour']);
+				// allow replies
+				$this->noteReply = (int) $settingsArray['reply'];
+				// visibility limit
+				$this->noteVisibilityLimit = (int) $settingsArray['limit'];
+				/// visibility limit by
+				$this->noteLimitIDs = isset($settingsArray['limit_ids']) ? $settingsArray['limit_ids']  : array();
+			}
+		}
+
+		else {
+			$this->noteTitle = '';
+			$this->noteText = '';
+			$this->notePriority = 2;// 'normal'
+			$this->noteColour = 0;
+			$this->noteReply = 1;
+			$this->noteVisibilityLimit = 1;// all who can view dashboard notes
+			$this->noteLimitIDs = array();
+		}
+
 	}
 
 
