@@ -216,8 +216,7 @@ class ProcessDashboardNotes extends Process implements Module {
         $out .= $this->renderCreateNote();
         // @todo: renderNotes()!!! accordions? collapsible? flex? 3 columns? check nesting though! we don't want horizontal scroll!
         $out .= "<div id='dn_notes_container'>" . $this->renderNotes() . "</div>";
-        // @todo: temporary; this will appear under each note
-        $out .= $this->renderReplyForm();
+
 
 
         return $out;
@@ -493,8 +492,8 @@ class ProcessDashboardNotes extends Process implements Module {
         $f->label =  $this->_('Date Month Label');
         $f->notes = $this->_('Specify if to show month name or number in notes\' dates.');
 
-        $monthName = $this->_('Month Name');
-        $monthNumber = $this->_('Month Number');
+        $monthName = $this->_('Month Text');
+        $monthNumber = $this->_('Month Digits');
 
         $radioOptions = array (
             1 => "$monthNumber (30/04/2015)",
@@ -745,8 +744,13 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		*/
 
-        // @todo: work on limits,sort,etc
-        $notes = $this->wire('pages')->find("template=dashboard-note,include=all,parent!=7,limit=12");
+		// @todo: work on limits,sort,etc
+		$sorting = array(1=>"created",2=>"title",3=>"priority");
+		$sort = $sorting[(int)$this->settings->sort];
+		if(2 == $this->settings->sortDir) $sort = "-{$sort}";
+
+
+        $notes = $this->wire('pages')->find("template=dashboard-note,include=all,parent!=7,limit=12,sort=$sort");
 		if(!$notes->count()) return $this->_('No notes found. Add one to get started.');
 
 		$notes->each(function($note) {
@@ -754,6 +758,14 @@ class ProcessDashboardNotes extends Process implements Module {
 			$data = json_decode($noteSettingsJSON, true);
 			if(is_array($data) && count($data))$note->setArray($data);
 		});
+
+		$dateFormats = array(1=>"d/m/Y", 2=>"Y/m/d",3=>"m/d/Y");
+		$dateFormat = $dateFormats[$this->settings->dateFormat];
+		// showing month label instead of digits
+		if($this->settings->dateMonthLabel == 2) $dateFormat = str_replace(array("/","m"),array(" ","F"), $dateFormat);
+
+		// sort notes by priority if required (in-memory)
+		if($this->settings->sort == 3) $notes->sort("{$sort}");
 
 		/*
 			@todo: create method here to do notes checks: i.e.
@@ -774,17 +786,19 @@ class ProcessDashboardNotes extends Process implements Module {
 
         $out = '';
 
-		$out .= "<div class='uk-grid'>";
+		// @todo! edit!
+		$out .= "<ul class='dn_notes_grid ui-helper-clearfix' data-gridmode='grid' data-gridsize='130'>";
 		$depth = $this->settings->maxReply + 1;// since we start by minusing 1
 
 
-        $i = 0;
+        #$i = 0;
         foreach ($notes as $note) {
 
             // add margin left if required
-			$classMarginLeft = $i ? " uk-margin-left" : "";
+			#$classMarginLeft = $i ? " uk-margin-left" : "";
 			// @todo: create check here to see if editable (i.e. if locked)
 			// @todo: create check here to see if deletable (i.e. if note permissions prohibit deleting of others notes) > then remove trash icon: we check note created user! > remember a note is a page!: $this->notesDeleteOthers
+			// @todo: also truncate long titles!
 			$editURL = $this->baseURL . "/edit/?modal=1&id={$note->id}";
 			$background = $note->colour ? " style='background-color: rgba({$note->colour});'" : '';
 			$limitIDs = $note->limitVisibility > 1 ? implode("|",$note->limitVisibilityIDs) : '';
@@ -792,23 +806,43 @@ class ProcessDashboardNotes extends Process implements Module {
 			// grab the comment text and clean it
             $text = htmlentities($note->text, ENT_QUOTES, "UTF-8");
             $text = str_replace("\n\n", "</p><p>", $text);
-            $text = str_replace("\n", "<br />", $text);
+			$text = str_replace("\n", "<br />", $text);
 
-			$i++;
+			$date = date($dateFormat, $note->created);// @todo: get from overall settings!
+			// @todo; configurable field to get author name!
+			$author = $note->createdUser->name;
+
+			// @todo: truncate $note->text + add Read More or View what if no comments?
+			// @todo: edit as required! e.g., do we need li#id?! + the data-attr?
 			$out .=
-				"<div class='dn_note_display uk-card uk-card-small uk-card-hover{$classMarginLeft}'{$background}>" .
-					"<div class='uk-card-header'>" .
-						"<h3 class='uk-card-title'>" .
-							"<a href='{$editURL}' class='ui-helper-clearfix pw-modal pw-modal-medium'>{$note->title}</a>" .
-						"</h3>" .
+				"<li id='note-{$note->id}' class='gridImage ui-widget dn_note' data-note-value='{$note->id}'>" .
+					"<div class='dn_note gridImage__overflow'{$background}>" .
+					//"<h4 class='uk-card-title'>{$note->title}</h4>" .
+						"<header class='uk-comment-header'>" .
+							"<h4 class='uk-comment-title uk-margin-remove'>{$note->title}</h4>".
+							"<div class='uk-comment-meta'>{$date} | {$author} | {$note->priority}#</div>".
+						"</header>" .
+						// @todo: here and elsewhere, change these uk classes? are they not for comments?
+						"<div class='uk-comment-body'>" .
+							$text .
+						"</div>" .
 					"</div>" .
-					"<div class='uk-card-body'>{$text}</div>" .
-					"<div class='uk-card-footer'><a href='#' class='uk-button uk-button-text'>Read more</a></div>" .
-					"<div>".$this->renderThreadedComments($note->dashboard_note,$depth)."</div>" .
-				"</div>";
+					"<div class='gridImage__hover'>" .
+						"<div class='gridImage__inner'>" .
+							"<label class='gridImage__icon' for='' data-value='{$note->id}'>" .
+								"<input class='mm_thumb gridImage__selectbox' id='note-{$note->id}' name='mm_selected_media' type='checkbox' value='{$note->id}' data-media='{$note->id}'>" .
+								// @todo: change from mm_select to dn_select, here, in css and in js
+								"<span class='mm_select fa fa-check-square-o'></span>" .
+							"</label>" .
+							"<a href='{$editURL}' class='edit_pages gridImage__edit pw-modal pw-modal-medium'>" .
+								"<span>".$this->_('Edit')."</span>" .
+							"</a>" .
+						"</div>" .
+					"</div>" .
+				"</li>";
         }
 
-        $out .= "</div>";// div.uk-grid
+        $out .= "</ul>";
 
         return $out;
 
