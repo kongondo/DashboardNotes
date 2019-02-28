@@ -221,13 +221,30 @@ class ProcessDashboardNotes extends Process implements Module {
 
         return $out;
 
+	}
+	
+	    /**
+     * Renders a note for viewing and responses if enabled.
+     *
+     *
+     * @access public
+     * @return string $form Form markup. @todo
+     *
+     */
+    public function ___executeView() {
+
+
+        $modules = $this->wire('modules');
+
+		$out = "Placeholder for view method";
+		return $out;
+
     }
 
     /**
-     * Renders a single menu for editing. @todo
-     *
-     * Called when the URL is Menu Builders page URL + "/edit/"
-     * note: matches what is appended after ___execute below.
+     * Renders a single note for editing. @todo
+	 * 
+	 * Caters for both new and existing notes.
      *
      * @access public
      * @return string $form Form markup.
@@ -431,10 +448,7 @@ class ProcessDashboardNotes extends Process implements Module {
     }
 
     /**
-     * Renders a single menu for editing. @todo
-     *
-     * Called when the URL is Menu Builders page URL + "/edit/"
-     * note: matches what is appended after ___execute below.
+     * Renders global notes settings for editing. @todo
      *
      * @access public
      * @return string $form Form markup.
