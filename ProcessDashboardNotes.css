@@ -16,6 +16,27 @@
 html {overflow-y:scroll;}
 
 /** div **/
+div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;}
+div.gridImage__overflow {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+	background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+    /* @todo: padding? */
+}
+
+div.gridImage__hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0.4em;
+}
+
+div.gridImage__inner {position: relative; width: 100%; height: 100%;}
 
 /** span **/
 
@@ -24,6 +45,7 @@ html {overflow-y:scroll;}
 
 /** input **/
 select#dn_action_select, label#dn_action_select_label {float: right;}
+.gridImage__icon > input {display: none;}
 
 select#dn_action_select {
     /* margin-right: 0.75em; */
@@ -32,6 +54,8 @@ select#dn_action_select {
 
 /** label **/
 label#dn_action_select_label {/* margin-left: 1em;  */margin-right: 0.25em; display: inline-block; vertical-align: top;}
+label.gridImage__icon {display: none;}
+.gridImage:hover label.gridImage__icon:hover {display: block; color: #e83561; background-color: white;}
 
 
 
@@ -44,6 +68,51 @@ button#dn_actions_btn {display: none;}
 
 
 /** list **/
+ul.dn_notes_grid {
+    list-style: none;
+    padding-left: 0;
+    position: relative;
+    margin: 0;
+    margin-right: -.6em;
+    display: block;
+	list-style: none;
+}
+
+li.gridImage {
+    display: inline-block;
+    margin: 0 0.6em 0.6em 0;
+    box-shadow: none; border: 1px solid #d9e1ea;
+    list-style: none;
+}
+.gridImage {
+    position: relative;
+    border-radius: 2px;
+    background: #fff;
+    padding: 0.4em;
+    vertical-align: top;
+}
+/* @todo: combine with above */
+.gridImage {box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);}
+
+.gridImage__icon {
+	position: absolute;
+	background: white;
+	padding: .2em .6em;
+	color: #aaa;
+	z-index: 2;
+	cursor: pointer;
+}
+.gridImage__edit:hover {color: white; }
+.gridImage:hover .gridImage__inner {background: rgba(62, 185, 152, 0.7);}
+
+.gridImage__icon--single {display: block !important; position: static;}/*  @todo: needed? */
+.gridImage:hover .gridImage__icon {display: block;}
+.gridImage--select {background-color: #e83561 !important;}
+.gridImage--select .gridImage__icon {background-color: #e83561; color: white; display: block;}
+.gridImage--select .gridImage__icon:hover {background-color: #e83561;}
+.gridImage--select:hover .gridImage__edit {display: none;}
+.gridImage--select:hover .gridImage__icon:hover {background-color: #e83561;}
+.gridImage--select:hover .gridImage__inner {background: rgba(232, 53, 97, 0.3);}
 
 
 /** anchor **/
@@ -52,5 +121,19 @@ div#dn_menu a.dn_on {
     color: #354b60;
     font-weight: bold;
 }
-
+a.gridImage__edit, a.gridImage__locked {
+    position: absolute;
+    display: block;
+    width: 100%;
+    text-align: center;
+    color: white !important;
+    font-size: 1.3em;
+    cursor: move;
+    text-shadow: 0px 0px 7px rgba(62, 185, 152, 0.7);
+    display: none;
+    top: 35%;/* @kongondo for MM */
+}
+div.gridImage__inner a.gridImage__locked {font-size: 2.3em; cursor: not-allowed;}
+a.gridImage__edit {cursor: pointer;}
+.gridImage:hover .gridImage__edit, .gridImage:hover .gridImage__locked {display: block; }
 /** i **/
