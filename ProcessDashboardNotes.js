@@ -19,7 +19,7 @@ function ProcessDashboardNotes($) {
 		- function parameters and variables PREFIXED with '$'
 	*/
 
-	var jsDashboardNotesConfigs, colourPickerDefaultColour, colourPickerSave, colourPickerClear, parent;
+	var jsDashboardNotesConfigs, colourPickerDefaultBackgroundColour, colourPickerSave, colourPickerClear, parent;
 
 	// grab values for some variables
 	jsDashboardNotesConfigs = ProcessDashboardNotesConfigs();
@@ -43,6 +43,27 @@ function ProcessDashboardNotes($) {
 	}
 
 	/**
+	 * Show or Hide bulk actions button depending on whether notes selected.
+	 *
+	 */
+	function showHideActionsPanel() {
+
+		var $actionButton;
+		var $items;
+
+		// modal thumbs view: check if any notes checkboxes are cheched
+		$items = parent.find('input.dn_note_check:checked').first();
+		//$actionButton = $('button#dn_actions_btn_copy, button#dn_actions_btn');
+		$actionButton = $('button#dn_actions_btn_copy');
+
+		// if current selections, show actions button
+		if ($items.length) $actionButton.removeClass('dn_hide').fadeIn('slow');
+		// else hide actions burron
+		else $actionButton.fadeOut('slow').addClass('dn_hide');
+
+	}
+
+	/**
 	 * Updates outer class of item to match that of its "delete" checkbox
 	 *
 	 * @note: originally from InputfieldImage.js updateDeleteClass().
@@ -59,17 +80,17 @@ function ProcessDashboardNotes($) {
 	}
 
 	/**
-	 * Set checked states for selected media.
+	 * Set checked states for selected notes.
 	 *
-	 * Listens to clicks, double clicks and shift clicks in media selection.
-	 * Double click will select all media.
-	 * Shift click selects media within a range (start - end).
+	 * Listens to clicks, double clicks and shift clicks in notes selection.
+	 * Double click will select all notes.
+	 * Shift click selects notes within a range (start - end).
 	 *
 	 * @param Object $selected The selected element.
 	 * @param Event e A Javascript click event.
 	 *
 	 */
-	function mediaSelection($selected, e) {
+	function notesSelection($selected, e) {
 
 		// @todo: change name!
 
@@ -127,16 +148,19 @@ function ProcessDashboardNotes($) {
 		//@todo: delete when done!
 		//var $parent = $("div.mm_thumbs:not(.mm_hide)");
 		var $parent = $("div#dn_notes_container");
-		var $mediaThumbChkboxes = $parent.find("input[type='checkbox'].mm_thumb");
+		var $mediaThumbChkboxes = $parent.find("input[type='checkbox'].dn_note_check");
 		var $start = $mediaThumbChkboxes.index($currentChkbox);
 		var $previousChkbox = $parent.find('input#' + $previousChkboxID);
 		var $end = $mediaThumbChkboxes.index($previousChkbox);
 		var $shiftChecked = $mediaThumbChkboxes.slice(Math.min($start, $end), Math.max($start, $end) + 1);
 
+		console.log($shiftChecked,'shift checked');
+		
+
 		$shiftChecked.each(function () {
 			 // skip start and end (already checked)
 			if ($(this).is(":checked")) return;
-			$(this).parent('label').find("span.mm_select").click();
+			$(this).parent('label').find("span.dn_select").click();
 		});
 
 	}
@@ -174,31 +198,49 @@ function ProcessDashboardNotes($) {
 	/**
 	 * Initialise Pickr.
 	 *
+	 * @param string $el String to select the element which will be replaced with the actual color-picker.
+	 * @param string $i String to select the hidden element where we will save the selected colour.
+	 *
 	 */
-	function initColourPicker() {
+	//function initColourPicker($targetElement, $colourValueElement) {// @todo; delete when done
+	function initColourPicker($targetElement) {
 
 		if (jsDashboardNotesConfigs) {
-			colourPickerDefaultColour = jsDashboardNotesConfigs.config.colourPickerDefaultColour;
+			colourPickerDefaultTextColour = jsDashboardNotesConfigs.config.colourPickerDefaultTextColour;
+			colourPickerDefaultBackgroundColour = jsDashboardNotesConfigs.config.colourPickerDefaultBackgroundColour;
 			colourPickerSave = jsDashboardNotesConfigs.config.colourPickerSave;
 			colourPickerClear = jsDashboardNotesConfigs.config.colourPickerClear;
 		}
 
+		// @todo; sort out overlapping pickers
+
+		// @todo: delete when done
+		//console.log($colourValueElement, 'hidden target element')
+		var $el, $defaultColour, $colourType, $colourValueElement;
+
+		$el = "#" + $targetElement.attr('id');
+		$colourType = $targetElement.attr('data-colour-type');
+		$colourValueElement = "#" + $targetElement.attr('data-colour');
+		$defaultColour = $colourType == "text" ? colourPickerDefaultTextColour : colourPickerDefaultBackgroundColour;
+
+		// @todo; delete when done
+		console.log($el, 'element id')
+		console.log($colourType, 'colour type (text vs background)')
+		console.log($colourValueElement, 'hidden colourValueElement id')
+		console.log($defaultColour,'defaultColour')
+
 
 		// @see optional options for more configuration.
 		const pickr = Pickr.create({
-			el: '#dn_colour_picker',
-
+			el: $el,
 			// default color
-			default: (0 == colourPickerDefaultColour ? null : colourPickerDefaultColour),
+			default: (0 == $defaultColour ? null : $defaultColour),
 			defaultRepresentation: 'RGBA',
-
 			components: {
-
 				// Main components
 				preview: true,
 				opacity: true,
 				hue: true,
-
 				// Input / output Options
 				interaction: {
 					hex: false,
@@ -211,7 +253,7 @@ function ProcessDashboardNotes($) {
 					save: true
 				},
 			},
-
+			// @todo: future update; make configurable?
 			swatches: [
 				'#F44336',
 				'#E91E63',
@@ -245,13 +287,15 @@ function ProcessDashboardNotes($) {
 		}).on('save', (hsva) => {
 			// converts the object to an rgba array.
 			//var rgba = hsva.toRGBA()
+			var $updateElement = $('input' + $colourValueElement);
 			if (hsva) {
 				var rgbaString = hsva.toRGBA().toString(); // returns rgba(r, g, b, a)
 				// save the selected color to the hidden input for note background colour
-				$('input#dn_note_colour').val(rgbaString);
+				$updateElement.val(rgbaString);
+				console.log($colourValueElement,'UPDATED hidden target element')
 			}
-
-			else $('input#dn_note_colour').val(0);
+			// no background colour, so set to 0
+			else $updateElement.val(0);
 		});
 
 	}
@@ -263,29 +307,36 @@ function ProcessDashboardNotes($) {
 	function init() {
 
 
-		// initialise colour picker
+		// initialise colour pickers (for background and text colours)
 		if (typeof Pickr !== 'undefined') {
-			initColourPicker()
+			$('div.dn_colour_picker').each(function(){
+				/*var $elementID = "#" + $(this).attr('id');
+				var $colourValueElementID = "#" + $(this).attr('data-colour');
+				initColourPicker($elementID, $colourValueElementID)*/
+				//var $elementID = "#" + $(this).attr('id');
+				var $targetElement = $(this);
+				initColourPicker($targetElement)
+			});
 		}
 
 		// @todo: refresh parent page on modal (add/edit note) close
 
-		
 		// change of "delete/selected" status for an item event
 		$(document).on("change", ".gridImage__selectbox", function () {
 			console.log('checkbox changed');
 			updateSelectClass($(this));
 			// @todo: needed? if not delete. if yes, add parent above!
 			parent = $(this).parents('div#dn_notes_container');
+			showHideActionsPanel();
 		});
 
 		// click or double click select/trash event
 		// @note: was 'gridImage__trash' in original
 		//$(document).on('click dblclick', '.gridImage__icon', function (e) {
-		$(document).on('click dblclick', '.mm_select', function (e) {
+		$(document).on('click dblclick', '.dn_select', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
-			mediaSelection($(this),e);
+			notesSelection($(this),e);
 		});
 
 

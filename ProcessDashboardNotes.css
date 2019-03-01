@@ -9,134 +9,161 @@
  *
  */
 
-.dn_hide {display: none !important;}
+ .dn_hide {display: none !important;}
 
-/** html **/
-/* Prevent "jump" on shorter pages */
-html {overflow-y:scroll;}
+ /** html **/
+ /* Prevent "jump" on shorter pages */
+ html {overflow-y:scroll;}
 
-/** div **/
-/* @todo  trying to work on responsive widths @see parent li below*/
-div#dn_notes_container div.dn_note {width: 100%; height: 260px; padding: 15px;}
-div.gridImage__overflow {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-	background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-    /* @todo: padding? */
-}
+ /** heading **/
+div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
 
-div.gridImage__hover {
+ /** div **/
+ div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;}
+ div#dn_notes_container {clear: both;}
+ div#bottom_pager {margin: 1.25em 0;  height: 3.125em;}
+ div#dn_create_new_note {margin-top: 20px !important;}
+
+
+ div.gridImage__overflow {
+     width: 100%;
+     height: 100%;
+     overflow: hidden;
+     position: relative;
+     background-size: 16px 16px;
+     background-position: 0 0, 8px 8px;
+     /* @todo: padding? */
+ }
+
+ div.gridImage__hover {
+     position: absolute;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     padding: 0.4em;
+ }
+
+ div.gridImage__inner {position: relative; width: 100%; height: 100%;}
+
+ div.mm_actions_wrapper, div#top_pager {width: 100%;}
+
+ /** span **/
+span.dn_note_view_edit {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0.4em;
-}
-
-div.gridImage__inner {position: relative; width: 100%; height: 100%;}
-
-/** span **/
-
-/** form **/
-
-
-/** input **/
-select#dn_action_select, label#dn_action_select_label {float: right;}
-.gridImage__icon > input {display: none;}
-
-select#dn_action_select {
-    /* margin-right: 0.75em; */
-    width: 150px;
-}
-
-/** label **/
-label#dn_action_select_label {/* margin-left: 1em;  */margin-right: 0.25em; display: inline-block; vertical-align: top;}
-label.gridImage__icon {display: none;}
-.gridImage:hover label.gridImage__icon:hover {display: block; color: #e83561; background-color: white;}
-
-
-
-/** button **/
-/* @todo: revisit these! here we override PW admin theme styling of our colour picker buttons */
-.pcr-app .pcr-interaction .pcr-save {background: #4285f4 !important;}
-.pcr-app .pcr-interaction .pcr-clear {background: #f44250 !important;}
-button#dn_actions_btn {display: none;}
-
-
-
-/** list **/
-ul.dn_notes_grid {
-    list-style: none;
-    padding-left: 0;
-    position: relative;
-    margin: 0;
-    margin-right: -.6em;
-    display: block;
-	list-style: none;
-}
-
-li.gridImage {
-    /* @todo  trying to work on responsive widths */
-    max-width: 30%; 
-    display: inline-block;
-    margin: 0 0.6em 0.6em 0;
-    box-shadow: none; border: 1px solid #d9e1ea;
-    list-style: none;
-}
-.gridImage {
-    position: relative;
-    border-radius: 2px;
-    background: #fff;
-    padding: 0.4em;
-    vertical-align: top;
-}
-/* @todo: combine with above */
-.gridImage {box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);}
-
-.gridImage__icon {
-	position: absolute;
-	background: white;
-	padding: .2em .6em;
-	color: #aaa;
-	z-index: 2;
-	cursor: pointer;
-}
-.gridImage__edit:hover {color: white; }
-.gridImage:hover .gridImage__inner {background: rgba(62, 185, 152, 0.7);}
-
-.gridImage__icon--single {display: block !important; position: static;}/*  @todo: needed? */
-.gridImage:hover .gridImage__icon {display: block;}
-.gridImage--select {background-color: #e83561 !important;}
-.gridImage--select .gridImage__icon {background-color: #e83561; color: white; display: block;}
-.gridImage--select .gridImage__icon:hover {background-color: #e83561;}
-.gridImage--select:hover .gridImage__edit {display: none;}
-.gridImage--select:hover .gridImage__icon:hover {background-color: #e83561;}
-.gridImage--select:hover .gridImage__inner {background: rgba(232, 53, 97, 0.3);}
-
-
-/** anchor **/
-div#dn_menu ul li a:first-child {padding-left: 0;}
-div#dn_menu a.dn_on {
-    color: #354b60;
-    font-weight: bold;
-}
-a.gridImage__edit, a.gridImage__locked {
-    position: absolute;
-    display: block;
     width: 100%;
     text-align: center;
+    display: none;
+    top: 35%;/* @kongondo for DN */
+}
+
+.gridImage:hover span.dn_note_view_edit {display: block; }
+
+span.dn_note_view_edit_divider {
+    display: inline-block;
+    margin-right: 10px;
+    margin-left: 10px;
+    font-weight: bolder;
+    color: white;
+    font-size: 1.5em;
+}
+
+ /** form **/
+
+
+ /** input **/
+ select#dn_action_select, label#dn_action_select_label {float: right;}
+ .gridImage__icon > input {display: none;}
+
+ select#dn_action_select {
+     /* margin-right: 0.75em; */
+     width: 150px;
+ }
+
+ /** label **/
+ label#dn_action_select_label {/* margin-left: 1em;  */margin-right: 0.25em; display: inline-block; vertical-align: top;}
+ label.gridImage__icon {display: none;}
+ .gridImage:hover label.gridImage__icon:hover {display: block; color: #e83561; background-color: white;}
+
+
+
+ /** button **/
+ /* @todo: revisit these! here we override PW admin theme styling of our colour picker buttons */
+ .pcr-app .pcr-interaction .pcr-save {background: #4285f4 !important;}
+ .pcr-app .pcr-interaction .pcr-clear {background: #f44250 !important;}
+ button#dn_actions_btn {display: none;}
+
+
+
+ /** list **/
+ div#top_pager .MarkupPagerNav, div#bottom_pager .MarkupPagerNav {float: right;}
+
+ ul.dn_notes_grid {
+     list-style: none;
+     padding-left: 0;
+     position: relative;
+     margin: 0;
+     margin-right: -.6em;
+     display: block;
+     list-style: none;
+ }
+
+ li.gridImage {
+     display: inline-block;
+     margin: 0 0.6em 0.6em 0;
+     box-shadow: none; border: 1px solid #d9e1ea;
+     list-style: none;
+ }
+ .gridImage {
+     position: relative;
+     border-radius: 2px;
+     background: #fff;
+     padding: 0.4em;
+     vertical-align: top;
+ }
+ /* @todo: combine with above */
+ .gridImage {box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);}
+
+ .gridImage__icon {
+     position: absolute;
+     background: white;
+     padding: .2em .6em;
+     color: #aaa;
+     z-index: 2;
+     cursor: pointer;
+ }
+ .gridImage__edit:hover {color: white; }
+ .gridImage:hover .gridImage__inner {background: rgba(62, 185, 152, 0.7);}
+
+ .gridImage__icon--single {display: block !important; position: static;}/*  @todo: needed? */
+ .gridImage:hover .gridImage__icon {display: block;}
+ .gridImage--select {background-color: #e83561 !important;}
+ .gridImage--select .gridImage__icon {background-color: #e83561; color: white; display: block;}
+ .gridImage--select .gridImage__icon:hover {background-color: #e83561;}
+ .gridImage--select:hover .gridImage__edit {display: none;}
+ .gridImage--select:hover .gridImage__icon:hover {background-color: #e83561;}
+ .gridImage--select:hover .gridImage__inner {background: rgba(232, 53, 97, 0.3);}
+
+
+ /** anchor **/
+ div#dn_menu ul li a:first-child {padding-left: 0;}
+ div#dn_menu a.dn_on {
+     color: #354b60;
+     font-weight: bold;
+ }
+ a.gridImage__edit, a.gridImage__locked {
+    display: inline-block;
     color: white !important;
     font-size: 1.3em;
     cursor: move;
     text-shadow: 0px 0px 7px rgba(62, 185, 152, 0.7);
-    display: none;
-    top: 35%;/* @kongondo for MM */
 }
-div.gridImage__inner a.gridImage__locked {font-size: 2.3em; cursor: not-allowed;}
-a.gridImage__edit {cursor: pointer;}
-.gridImage:hover .gridImage__edit, .gridImage:hover .gridImage__locked {display: block; }
-/** i **/
+ div.gridImage__inner a.gridImage__locked {font-size: 1.9em; cursor: not-allowed;}
+ a.gridImage__edit {cursor: pointer;}
+ /* @note: we've moved this to the span */
+ /* .gridImage:hover .gridImage__edit, .gridImage:hover .gridImage__locked {display: block; } */
+ a.gridImage__locked {vertical-align: sub;}
+
+ a.dn_create_note, a.dn_back_to_all_notes {display: block; margin-bottom: 20px !important;}
+
+ /** i **/
