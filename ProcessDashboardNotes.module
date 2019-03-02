@@ -607,15 +607,61 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('value', $this->pageNumStr);
 		$fieldset->add($f);
 
-		########
-
 		$form->add($fieldset);
+
+		########
 
 		// new note: submit button
 		$f = $modules->get('InputfieldSubmit');
 		$f->attr('id+name', 'dn_note_edit_btn');
 		$f->value = $this->_('Save');
 		$f->showInHeader();
+
+		$f = $this->wire('modules')->get('InputfieldSubmit');
+		$f->attr('id+name', 'dn_note_edit_btn');
+		$f->value = $this->_('Save');
+		$f->showInHeader();
+
+		/*
+			@note:
+			- pw will store their sent values in hidden input with id dn_note_edit_btn_dropdown_value
+			- i.e. appends '_dropdown_value' to our submit button's id
+			- its name is _action_value ($post->_action_value)
+		*/
+		$dropdownButtonOptions = array(
+			// deactivate filter dropdown
+			0 => array(
+				'value' => 'exit',
+				'label' => $this->_('Save + Exit'),
+				'icon' => 'close'
+			),
+			// lock filter dropdown
+			1 => array(
+				'value' => 'new',
+				'label' => $this->_('Save + Add New'),
+				'icon' => 'plus-circle'
+			),
+			// unlock filter dropdown
+			2 => array(
+				'value' => 'view',
+				'label' => $this->_('Save + View'),
+				'icon' => 'eye'
+			),
+			// delete filter dropdown
+			3 => array(
+				'value' => 'next',
+				'label' => $this->_('Save + Next'),
+				'icon' => 'edit'
+			)
+		);
+
+		foreach($dropdownButtonOptions as $key => $value) {
+			$f->addActionValue(
+				$value['value'],
+				$value['label'],
+				$value['icon']
+			);
+		}
 
 		$form->add($f);
 
@@ -736,7 +782,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('name', 'dn_note_sort');
 		$f->attr('value', $this->settings->sort);
 		$f->label =  $this->_('Display Sort');
-		$f->notes = $this->_('How to sort display of notes.');
+		$f->notes = $this->_('How to sort display of notes. Please note that sorting by priority is experimental. It may not always work as expected.');
 
 		$radioOptions = array (
 			1 => $this->_('Date'),
@@ -806,6 +852,32 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->description = $this->_('Maximum characters for truncation for note text preview in dashboard..');
 
 		$form->add($f);
+
+		/* ## notes dimensions in pixels ## */
+		// width
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_width');
+		$f->attr('value', $this->settings->width);
+		$widthLabel = $this->_('Width');
+		$widthMarkup = "<div class='uk-width-1-2@s'><h4>{$widthLabel}</h4><div id='dn_note_width' class='dn_note_dimensions'>{$f->render()}</div></div>";
+
+		// height
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_height');
+		$f->attr('value', $this->settings->height);
+		$heightLabel = $this->_('Height');
+		$heightMarkup = "<div class='uk-width-1-2@s'><h4>{$heightLabel}</h4><div id='dn_note_height' class='dn_note_dimensions'>{$f->render()}</div></div>";
+
+		$dimensionsMarkup = "<div uk-grid class='uk-grid'>{$widthMarkup}{$heightMarkup}</div>";
+
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $dimensionsMarkup);
+		$f->label = $this->_('Note Dimensions');
+		$f->notes = $this->_('Specify the dimensions you want notes to be displayed in in the dashboard. Please note these will applied as pixels. The value of truncating long preview texts above should be taken into consideration when specifying dimensions.');
+
+		$form->add($f);
+
+		########
 
 		// save button
 		$f = $modules->get('InputfieldSubmit');
@@ -982,8 +1054,16 @@ class ProcessDashboardNotes extends Process implements Module {
 				$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
 			}
 
+			// @note: textColour NOT applied to div.dn_note
 			$textColour = $note->textColour ? " style='color:rgba({$note->textColour});'" : '';
-			$backgroundColour = $note->backgroundColour ? " style='background-color:rgba({$note->backgroundColour});'" : '';
+			// @todo: delete when done
+			//$backgroundColour = $note->backgroundColour ? " style='background-color:rgba({$note->backgroundColour});'" : '';
+			$backgroundColour = $note->backgroundColour ? "background-color:rgba({$note->backgroundColour});" : '';
+
+			// note width + height + background colour inline CSS styles. applied to div.dn_note
+			$width = "width:{$this->settings->width}px;";
+			$height = "height:{$this->settings->height}px;";
+			$noteWrapperStyles = " style='{$width}{$height}{$backgroundColour}'";
 
 			// @todo: we'll use this to do visibility checks and skip if required
 			$limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
@@ -1021,7 +1101,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			// @todo: edit as required! e.g., do we need li#id?! + the data-attr?
 			$out .=
 				"<li id='note-{$note->id}' class='gridImage ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
-					"<div class='dn_note gridImage__overflow'{$backgroundColour}>" .
+					"<div class='dn_note gridImage__overflow'{$noteWrapperStyles}>" .
 						"<header class='uk-comment-header'>" .
 							"<h4 class='uk-comment-title uk-margin-remove'{$textColour}>{$note->title}</h4>".
 							"<div class='uk-comment-meta'{$textColour}>{$meta}</div>".
@@ -1206,8 +1286,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		// process form
 		$form->processInput($post);
 
-		bd($post,'post');
-
 		// save new note or edit existing note
 		if ($post->dn_note_edit_btn) $this->saveNote($post);
 		// notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
@@ -1237,11 +1315,12 @@ class ProcessDashboardNotes extends Process implements Module {
 		$noteTitle = $sanitizer->text($post->dn_note_title);
 		$noteName = $sanitizer->pageName($noteTitle);
 		$noteText = $sanitizer->textarea($post->dn_note_text);
+		$noteAfterSave = $sanitizer->fieldName($post->_action_value);
 		$lockStatus = (int) $post->dn_note_locked;
 		$nameClash = false;
 
 		// hidden input that holds the pagination str in order to preserve for redirection and hence 'back to all links' to page where this note was at in the dashboard
-		$paginationNumberStr = $sanitizer->pageName($post->dn_note_pagination_num_str);;
+		$paginationNumberStr = $sanitizer->pageName($post->dn_note_pagination_num_str);
 		$urlParamPageNumStr = $paginationNumberStr ? "&page=" . $paginationNumberStr : "";
 
 		// redirect back if no title or no text
@@ -1335,8 +1414,49 @@ class ProcessDashboardNotes extends Process implements Module {
 		$page->save();
 
 		$this->message($this->_('Note saved.'));
-		// redirect to edit after save
-		$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+
+		/*
+			# determine redirection # @note: we preserve url param strings if possible!
+			- Five possibilities here:
+			1. Save and continue editing (default)
+			2. Save + Exit
+			3. Save + Add New note
+			4. Save + View note
+			5. Save + Edit next sibling note
+
+			@todo:
+			#5 is tricky!
+			- @todo: get next unlocked? naah; just get even locked, maybe they want to unlock it!
+			- what about view access! if note controlled, what to do? redirect? users will be confused! since setting stored in JSON, HOW do we query that? "limitVisibility":1 as exact phrase? try it!?
+
+			@todo: preserve url param strings as applicable @see above
+
+		*/
+		// save + exit: back to dashboard (keep pagination info!)
+		if('exit' == $noteAfterSave) {
+			bd('exit to view all notes dashboard after save');
+			$session->redirect($this->baseURL . "/{$paginationNumberStr}");
+		}
+		// save + new: got to add new note screen. no need for any url param string
+		elseif('new' == $noteAfterSave) {
+			bd('got to create new note');
+			$session->redirect($this->baseURL . "/edit/");
+		}
+		// save + view: view this note but build correct url param string
+		elseif('view' == $noteAfterSave) {
+			bd('go to view page for this note');
+			$viewURL = $this->baseURL . "/view/?id={$page->id}{$urlParamPageNumStr}";
+			$session->redirect($viewURL);
+		}
+		// next: go edit next accessible note but build correct url param string for the
+		elseif('next' == $noteAfterSave) {
+			bd('edit next accessible sibling page for this note');
+		}
+		// stay on this page to continue editing it
+		else {
+			bd('staying right here continue edit');
+			$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+		}
 
 	}
 
@@ -1404,6 +1524,9 @@ class ProcessDashboardNotes extends Process implements Module {
 		$settingsArray['maxReply'] = (int) $post->dn_note_max_reply_depth;
 		// max characters for truncation for note text preview in dashboard
 		$settingsArray['truncateMax'] = (int) $post->dn_note_truncate_max;
+		// note dispaly width and height: for dashboard display using inline CSS in pixels
+		$settingsArray['width'] = (int) $post->dn_note_width;
+		$settingsArray['height'] = (int) $post->dn_note_height;
 
 		// save
 		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
@@ -1556,7 +1679,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function setGlobalNoteValues() {
 
-		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0, 'truncateMax'=>150);
+		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0, 'truncateMax'=>150,'width'=>300,'height'=>260);
 
 		$notesSettingsPage = $this->wire('page')->child('include=all');
 		$savedSettingsJSON = $notesSettingsPage->dashboard_notes_settings;
