@@ -54,6 +54,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	private $urlSeg1;// urlSegment1
 	private $baseURL;// base URL to this module
 	private $dateFormat;// for formatting note dates display
+	private $pageNumStr;// for url with page number string affixed
 
 	// @note: properties shared between single note and global settings! [for save of js scripts]
 	private $noteTextColour;// notes background colour
@@ -75,39 +76,14 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function init() {
 
-		// @todo: delete when done!
-
-
+		// @todo; delete when done development
+		/* for ($i=0; $i < 50; $i++) {
+			$this->generateFakeComments();
+		} */
 
 		$user = $this->wire('user');
 
-		//$page = $this->wire('pages')->get(1577);
-		/*$c = new Comment();
-		$c->text = 'Theophrasti igitur, inquit, tibi liber ille placet de beata vita? Itaque hic ipse iam pridem est reiectus; Omnia contraria, quos etiam insanos esse vultis. Quae diligentissime contra Aristonem dicuntur a Chryippo. Quos quidem tibi studiose et diligenter tractandos magnopere censeo. Idemne, quod iucunde? Efficiens dici potest. Idemne potest esse dies saepius, qui semel fuit? Nunc ita separantur, ut disiuncta sint, quo nihil potest esse perversius.';
-		//$c->cite = $user->get('title|name');
-		$c->cite = 'Anyiena';
-		//$c->email = $user->email;// do we need this?
-		$c->email = "anime@hotmel.za";// do we need this?
-		//$c->website = '';
-		//$c->stars = 78;
-		//$c->upvotes = 41;
-		//$c->downvotes = 3;
-		//$c->parent_id = 165; // or another comment's id
-		$c->parent_id = 6; // or another comment's id
-		//$c->status = Comment::statusApproved;
-		//$c->status = 1;
-		// $c->ip = '127.0.0.1';
-		// $c->user_agent = 'Chrome';
-		$c->created_users_id = $user->id;
-
-		$page->of(false);
-		$page->dashboard_note->add($c);
-		$page->save('dashboard_note');
-		$page->of(true);
-		exit;*/
-
 		$this->settings = new WireData();
-
 
 		$user = $this->wire('user');
 		$this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
@@ -115,8 +91,15 @@ class ProcessDashboardNotes extends Process implements Module {
 		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
 			 throw new WirePermissionException("You have no permission to use this module");
 
+		$input = $this->wire('input');
 		$sanitizer = $this->wire('sanitizer');
-		$this->urlSeg1 =  $sanitizer->pageName($this->wire('input')->urlSegment1);
+		$this->urlSeg1 =  $sanitizer->pageName($input->urlSegment1);
+
+		# page number string
+		// for paginated views leading to note edit or view. we use this to create backlink that leads to where in pagation user was
+		// the param string is 'page' [e.g. &page=page4]
+		$pageNumStr = $sanitizer->fieldName($input->page);
+		$this->pageNumStr = $pageNumStr ? "{$pageNumStr}" : "";
 
 		// prepare notes global settings @note: calling before setNoteValues()  so not to cancel shared colour properties with single note values!
 		$this->setGlobalNoteValues();
@@ -131,7 +114,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// initialise extra properties for a single note for viewing or editing
 		if('edit' == $this->urlSeg1 || 'view' == $this->urlSeg1) {
 			$this->setNoteValues();
-		}		
+		}
 
 		// add color picker to new/edit and settings pages
 		if('edit' == $this->urlSeg1 || 'settings' == $this->urlSeg1) {
@@ -141,12 +124,6 @@ class ProcessDashboardNotes extends Process implements Module {
 			$config->styles->add($url . "vendor/pickr/pickr.min.css");
 			$config->scripts->add($url . "vendor/pickr/pickr.min.js");
 		}
-
-		$modules = $this->wire('modules');
-		$modules->get("Jquery");
-		$ui = $modules->get("JqueryUI");
-		$ui->use("modal");
-		$modules->get("JqueryMagnific");
 
 		parent::init();
 
@@ -196,7 +173,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $form Form markup.
 	 *
 	 */
-	public function ___execute() {		
+	public function ___execute() {
 
 		$out = '';
 		$pgOut = '';// for pagination
@@ -324,10 +301,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeView() {
 
-		$pageNumStr = $this->wire('input')->page;
-		bd($pageNumStr,'$pageNumStr whence we came');
-
 		$note = $this->note;
+		$out = '';
+		$replyForm = '';
 
 		$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
 		// @todo; configurable field to get author name!
@@ -352,21 +328,24 @@ class ProcessDashboardNotes extends Process implements Module {
 					$this->renderThreadedComments($note->dashboard_note,$depth);
 			}
 
-			$noteResponses = "<div id='dn_note_responses'>".$noteResponses. $this->renderReplyForm()."</div>";
+			$noteResponses = "<div id='dn_note_responses'>" . $noteResponses ."</div>";
+
+			$replyForm = $this->renderReplyForm();
 
 		}
 
 
 
-		$out =
+		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}/{$pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$this->pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				//"<h2>{$note->title}</h2>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$date} | {$author} | {$note->priority}</div>".
 				"</header>" .
 				"<div id='dn_note_text'>{$note->text}</div>" .
 				$noteResponses.
+				$replyForm .
 			"</div>";
 		return $out;
 
@@ -387,9 +366,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		//@todo: initial work on going back to where we were on the notes dash before arrive here. Need to make sure to call condition correctly + consider renaming the 'page' param string
 
-		$pageNumStr = $this->wire('input')->page;
-		bd($pageNumStr,'$pageNumStr whence we came');
-
 		$out = "";
 		$note = $this->note;
 		$modules = $this->wire('modules');
@@ -397,7 +373,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 		if($note->title) {
-			if($note->is(Page::statusLocked)) $this->warning($this->_('This note is locked for edits. Unlock it first to edit.'));
+			if(1 == $note->locked) $this->warning($this->_('This note is locked for edits. Unlock it first to edit.'));
 			$headline = $note->title;
 			$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
 			// @todo; configurable field to get author name!
@@ -420,7 +396,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @todo: back to all notes should return you to page where you were!
 		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}/{$pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$this->pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$meta}</div>".
 				"</header>" .
@@ -497,8 +473,8 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		/* ## notes text and background colours ## */
 		$textColourLabel = $this->_('Text Colour');
-		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";		 
-		
+		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";
+
 		$backgroundColourLabel = $this->_('Background Colour');
 		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
@@ -544,10 +520,9 @@ class ProcessDashboardNotes extends Process implements Module {
 		$fieldset->add($f);
 
 		/* ## note locked for edits ## */
-		$locked = $note->is(Page::statusLocked) ? 1 : 2;
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_locked');
-		$f->attr('value', $locked);
+		$f->attr('value', $note->locked);
 		$f->label =  $this->_('Lock');
 		$f->notes = $this->_('Specify if this note is locked for edits. Locked notes cannot be edited or deleted.');
 
@@ -624,6 +599,12 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$f->addOptions($users);
 
+		$fieldset->add($f);
+
+		// hidden input to store param string for pagination. Helps to set 'back to all notes' link correctly after save so user can head back to the last page (with this note) that they were browsing
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_pagination_num_str');
+		$f->attr('value', $this->pageNumStr);
 		$fieldset->add($f);
 
 		########
@@ -722,14 +703,14 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		/* ## notes default text and background colours ## */
 		$textColourLabel = $this->_('Text Colour');
-		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";		 
-		
+		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";
+
 		$backgroundColourLabel = $this->_('Background Colour');
 		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
 		$coloursMarkup = "<div uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
 
-		$f = $modules->get('InputfieldMarkup');	
+		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $coloursMarkup);
 		$f->label = $this->_('Default Colours');
 		$f->notes = $this->_('Pick default text and background colours for all new notes. For texts, If none is picked, it will default to the current CSS text colour. For backgrounds, the default is no background colour. Please note this setting only applies when creating new notes.');
@@ -814,6 +795,15 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('value', $this->settings->maxReply);// 0 = no maximum
 		$f->label = $this->_('Reply Depth');// @todo: change label?
 		$f->description = $this->_('Maximum allowed nested depth for replies to notes.');
+
+		$form->add($f);
+
+		/* ## note maximum reply depth ## */
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_truncate_max');
+		$f->attr('value', $this->settings->truncateMax);// 150
+		$f->label = $this->_('Note Preview Maximum Characters');// @todo: change label?
+		$f->description = $this->_('Maximum characters for truncation for note text preview in dashboard..');
 
 		$form->add($f);
 
@@ -952,17 +942,14 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		*/
 
-		bd($this->wire('input')->pageNumStr(), 'pageNumStr');
-		bd($this->wire('input')->pageNum(), 'pageNum');
-		//$pageNumber = $this->wire('input')->pageNum();
-		$pageNumStr = $this->wire('input')->pageNumStr();
+		$urlParamPageNumStr = $this->wire('input')->pageNumStr() ? "&page=" . $this->wire('input')->pageNumStr() : "";
 
 		$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
 		$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
 		// asterisks @todo: use this?
 		$priorities = array(1=>"&#42;",2=>"&#42;&#42;",3=>"&#42;&#42;&#42;");
 		//$priorities = array(1=>"fa-arrow-circle-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-up");
-		// fa-exclamation-triangle  fa-exclamation-circle 
+		// fa-exclamation-triangle  fa-exclamation-circle
 		//$priorities = array(1=>"fa-arrow-circle-o-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-o-up");
 		$priorityClasses = array(1=>'dn_low_priority',2=>'dn_normal_priority',3=>'dn_high_priority');
 
@@ -980,7 +967,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			// @todo: create check here to see if deletable (i.e. if note permissions prohibit deleting of others notes) > then remove trash icon: we check note created user! > remember a note is a page!: $this->notesDeleteOthers
 			// @todo: also truncate long titles!
 			//$viewURL = "<a href='{$this->baseURL}/view/?id={$note->id}'>…</a>";
-			$viewURL = $this->baseURL . "/view/?id={$note->id}&page={$pageNumStr}";
+			$viewURL = $this->baseURL . "/view/?id={$note->id}{$urlParamPageNumStr}";
 
 			if($note->is(Page::statusLocked)){
 				$editURL = '#';
@@ -989,16 +976,12 @@ class ProcessDashboardNotes extends Process implements Module {
 			}
 			// media unlocked and can be edited
 			else {
-				// @todo; no longer using modal! change! delete when done
-				$editURL = $this->baseURL . "/edit/?id={$note->id}&page={$pageNumStr}";
+				$editURL = $this->baseURL . "/edit/?id={$note->id}{$urlParamPageNumStr}";
 				// @todo: change gridImage to gridNote?
 				$editClass = 'gridImage__edit';
 				$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
 			}
 
-			/*$style = $note->textColour ? "color: rgba({$note->textColour});" : '';
-			$style .= $note->backgroundColour ? "background-color: rgba({$note->backgroundColour});" : '';
-			$style = $style ? " style='{$style}'" : '';*/
 			$textColour = $note->textColour ? " style='color:rgba({$note->textColour});'" : '';
 			$backgroundColour = $note->backgroundColour ? " style='background-color:rgba({$note->backgroundColour});'" : '';
 
@@ -1012,25 +995,24 @@ class ProcessDashboardNotes extends Process implements Module {
 			$text = str_replace("\n\n", "</p><p>", $text);
 			$text = str_replace("\n", "<br />", $text);
 
+			// @todo: revisit this! complete words do not show ...more!
 			$text = $this->wire('sanitizer')->truncate($text, [
 				'type' => 'punctuation',
-				'maxLength' => 150,
+				'maxLength' => $this->settings->truncateMax,
 				'visible' => true,
 				'keepFormatTags' => true,
-				'more' => "..."
+				'more' => "...<small>(". $this->_('more').")</small>"// @todo?!
 			  ]);
-			
+
 			// meta
 			$date = date($this->dateFormat, $note->created);
 			// @todo; configurable field to get author name!
 			$author = $note->createdUser->name;
 			$notePriority = $priorities[$note->priority];
-			//fa-comments, fa-comments-o, fa-comment, fa-comment-o 
-			$commentsCount = "<span class='fa fa-comments-o'>{$note->dashboard_note->count()}</span> ";
+			//fa-comments, fa-comments-o, fa-comment, fa-comment-o
+			$commentsCount = "<span class='fa fa-comments-o'><span class='dn_note_comments_count'>{$note->dashboard_note->count()}</span></span> ";
 			$priorityClass = " " . $priorityClasses[$note->priority];
-			
 
-			//$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span> | $commentsCount";
 			$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span>";
 
 			##################
@@ -1111,10 +1093,10 @@ class ProcessDashboardNotes extends Process implements Module {
 				if ($hasChild === false) {
 					$hasChild = true;// This is a parent
 					if ($first == 0){
-						$out .= "<ul id='dn_threaded_comments_main' class='uk-comment-list'>";
+						$out .= "<ul id='dn_threaded_comments_main' class='dn_threaded_comments uk-comment-list'>";
 						$first = 1;
 					}
-					else $out .= "<ul class='uk-comment-list'>";
+					else $out .= "<ul class='uk-comment-list dn_threaded_comments'>";
 				}
 
 				$out .=
@@ -1160,23 +1142,30 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function renderReplyForm() {
 
+		// @todo: might need token for csrf here since using own form!
+
 		$out =
-			"<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' style='display: flex;'>" .
-				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-					"<label>" .
-						"<span class='uk-form-label'>". $this->_('Response') . "</span>" .
-						"<textarea name='text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
-					"</label>" .
-				"</div>" .
-				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-					"<button type='submit' class='uk-button uk-button-primary' name='{dn_note_reply_btn}' value='1'>" .
-						$this->_('Reply') .
-					"</button>" .
-					// @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
-					"<input type='hidden' name='dn_note_page_id' value='0'>" .
-					"<input type='hidden' name='dn_note_parent_id' value='0'>" .
-				"</div>" .
-			"</form>";
+			"<div id='dn_note_response_form'>" .
+				"<h3 id='dn_note_response_form_header'>" .
+					"<span class='fa fa-comment-o'></span>".
+					"<span id='dn_note_response_label'>" . $this->_('Respond') . "</span>" .
+				"</h3>" .
+				"<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' >" .
+					"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+						"<label>" .
+							"<textarea name='dn_response_text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
+						"</label>" .
+					"</div>" .
+					"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+						"<button type='submit' class='uk-button uk-button-primary' name='dn_note_reply_btn' value='1'>" .
+							$this->_('Reply') .
+						"</button>" .
+						// @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
+						"<input type='hidden' name='dn_note_page_id' value='{$this->note->id}'>" .
+						"<input type='hidden' name='dn_note_parent_id' value='0'>" .
+					"</div>" .
+				"</form>" .
+			"</div>";
 
 		return $out;
 
@@ -1217,6 +1206,8 @@ class ProcessDashboardNotes extends Process implements Module {
 		// process form
 		$form->processInput($post);
 
+		bd($post,'post');
+
 		// save new note or edit existing note
 		if ($post->dn_note_edit_btn) $this->saveNote($post);
 		// notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
@@ -1240,19 +1231,24 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$pages = $this->wire('pages');
 		$sanitizer = $this->wire('sanitizer');
+		$session = $this->wire('session');
 
 		$notePageID = (int) $post->dn_note_page_id;
 		$noteTitle = $sanitizer->text($post->dn_note_title);
 		$noteName = $sanitizer->pageName($noteTitle);
 		$noteText = $sanitizer->textarea($post->dn_note_text);
+		$lockStatus = (int) $post->dn_note_locked;
 		$nameClash = false;
 
+		// hidden input that holds the pagination str in order to preserve for redirection and hence 'back to all links' to page where this note was at in the dashboard
+		$paginationNumberStr = $sanitizer->pageName($post->dn_note_pagination_num_str);;
+		$urlParamPageNumStr = $paginationNumberStr ? "&page=" . $paginationNumberStr : "";
 
 		// redirect back if no title or no text
 		if (!$noteTitle || !$noteText)  {
 			// @todo: error here, redirect!? ProcessWire will throw error anyway?
 			$this->error($this->_('A title and text are required.'));
-			$this->wire('session')->redirect($this->baseURL . "/edit/?id={$notePageID}");
+			$session->redirect($this->baseURL . "/edit/?id={$notePageID}{$urlParamPageNumStr}");
 		}
 
 		$parent = $this->wire('page')->child('include=all');
@@ -1279,6 +1275,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			$page = new Page();
 			$page->template = "dashboard-note";
 			$page->parent = $parent;
+			// @todo: if new and locking, add lock!
 			// sanitize and convert to a URL friendly page name
 			if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
 		}
@@ -1292,7 +1289,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			if(!$page) {
 				$this->error($this->_('Note not found.'));
 				// redirect with error
-				$this->wire('session')->redirect($this->baseURL . "/edit/");
+				$session->redirect($this->baseURL . "/edit/");
 			}
 
 			if($page->title != $noteTitle) {
@@ -1305,11 +1302,33 @@ class ProcessDashboardNotes extends Process implements Module {
 		if($nameClash) {
 			$this->error($this->_('A note with that name already exists! Choose a different name.'));
 			// redirect
-			$this->wire('session')->redirect($this->baseURL . "/edit/?id={$page->id}");
+			$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+		}
+
+		// if NOT NEW NOTE and page locked ONLY save if removing lock
+		if($notePageID && $page->is(Page::statusLocked)) {
+			// if user is unlocking, then unlock, save and redirect
+			if(2 == $lockStatus) {
+				//  user is trying to unlock a locked note page. remove lock and redirect. no other saves!
+				$page->removeStatus(Page::statusLocked);
+				$page->save();
+				$this->message($this->_('Note unlocked for edits.'));
+				// redirect to edit after save
+				$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+			}
+			// else, error, page locked, user needs to unlock note page first
+			else {
+				$this->error($this->_('This note is locked for edits. Change its locked status first and save before continuing.'));
+				// redirect to edit after save
+				$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+			}
 		}
 
 		$page->title = $noteTitle;
 		$page->name = $noteName;
+
+		// if note page is getting locked as well
+		if(1 == $lockStatus) $page->addStatus(Page::statusLocked);
 
 		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
 		$page->dashboard_notes_settings = $settingsJSON;
@@ -1317,7 +1336,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$this->message($this->_('Note saved.'));
 		// redirect to edit after save
-		$this->wire('session')->redirect($this->baseURL . "/edit/?id={$page->id}");
+		$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
 
 	}
 
@@ -1337,6 +1356,25 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 	}
+
+	/**
+	 * Save a response to a note.
+	 *
+	 * This can come from the main form on the page or forms built on the fly for nested responses.
+	 *
+	 * @access private
+	 * @param array $post Input Post with new or existing note to save.
+	 * @access private
+	 *
+	 */
+	private function saveNoteReply($post) {
+
+		bd($post->dn_note_reply_btn,'dn_note_reply_btn in bulk actions');
+
+
+	}
+
+
 
 	/**
 	 * Save global default notes settings.
@@ -1364,6 +1402,8 @@ class ProcessDashboardNotes extends Process implements Module {
 		$settingsArray['deleteOther'] = (int) $post->dn_note_delete_others;
 		$settingsArray['displayMax'] = (int) $post->dn_note_max_display;
 		$settingsArray['maxReply'] = (int) $post->dn_note_max_reply_depth;
+		// max characters for truncation for note text preview in dashboard
+		$settingsArray['truncateMax'] = (int) $post->dn_note_truncate_max;
 
 		// save
 		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
@@ -1474,7 +1514,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function setNoteValues() {
 
-		$defaultSettings = array('priority'=>2,'textColour'=>0,'backgroundColour'=>0,'reply'=>1,'limitVisibility'=>1,'limitVisibilityIDs'=>array());
+		$defaultSettings = array('priority'=>2,'textColour'=>0,'backgroundColour'=>0,'reply'=>1,'locked'=>2,'limitVisibility'=>1,'limitVisibilityIDs'=>array());
 		$savedSettings = array();
 
 		$notePageID = (int) $this->wire('input')->get->id;
@@ -1484,6 +1524,7 @@ class ProcessDashboardNotes extends Process implements Module {
 				$this->note = $page;
 				// ## settings ##
 				$savedSettings = json_decode($page->dashboard_notes_settings, true);
+				if($page->is(Page::statusLocked)) $savedSettings['locked'] = 1;
 			}
 			// no page found, go back to all notes
 			else $this->wire('session')->redirect($this->baseURL);
@@ -1512,10 +1553,10 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @access private
 	 * @return void
 	 *
-	 */	
+	 */
 	private function setGlobalNoteValues() {
 
-		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0);
+		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0, 'truncateMax'=>150);
 
 		$notesSettingsPage = $this->wire('page')->child('include=all');
 		$savedSettingsJSON = $notesSettingsPage->dashboard_notes_settings;
@@ -1868,6 +1909,65 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @note: saving as hidden; we don't want to show in AdminThemeReno side menu
 		$p->addStatus(Page::statusHidden);
 		$p->save();
+
+	}
+
+	/**
+	 * Generate fake comments for development. @todo: delete when done!
+	 */
+	private function generateFakeComments() {
+
+		$randomValuesArray = array(
+
+			'notes' => array(1297,1298,1299,1308,1319,1320,1321,1322,1323,1324,1325,1326,1327),
+			'length' => array('short','medium','long','verylong'),
+			'text_number' => array(1,2,3,4,5,6),
+			'cite' => array('Peter','Drogba','Ashkur','Nancy','Jenny','Ken','Ben','Ampfo'),
+			'email_domain' => array('@yahoo.com','@gmail.com','@outlook.de','@hotmail.co.uk'),
+
+
+		);
+
+		$pageID = $randomValuesArray['notes'][( array_rand($randomValuesArray['notes'],1) )];
+		$page = $this->wire('pages')->get($pageID);
+		$length = $randomValuesArray['length'][( array_rand($randomValuesArray['length'],1) )];
+		$textNumber = $randomValuesArray['text_number'][( array_rand($randomValuesArray['text_number'],1) )];
+		$cite = $randomValuesArray['cite'][( array_rand($randomValuesArray['cite'],1) )];
+		$emailDomain = $randomValuesArray['email_domain'][( array_rand($randomValuesArray['email_domain'],1) )];
+
+		$http = new WireHttp();
+
+		$response = $http->get("https://loripsum.net/api/{$textNumber}/{$length}/plaintext");
+		  if($response !== false) {
+			$text = $this->wire('sanitizer')->entities($response);
+			$this->message('Successful response');
+		  } else {
+			$this->error("HTTP request failed: " . $http->getError());
+		}
+
+		$c = new Comment();
+		$c->text = str_replace("Lorem ipsum dolor sit amet, consectetur adipiscing elit.", "",$text);
+		//$c->cite = $user->get('title|name');
+		$c->cite = $cite;
+		$c->email = "{$cite}{$emailDomain}";
+		//$c->website = '';
+		//$c->stars = 78;
+		//$c->upvotes = 41;
+		//$c->downvotes = 3;
+		//$c->parent_id = 165; // or another comment's id
+		//$c->parent_id = $page->dashboard_note->random(); // or another comment's id
+		$c->parent_id = mt_rand(3,7); // or another comment's id
+		//$c->status = Comment::statusApproved;
+		//$c->status = 1;
+		// $c->ip = '127.0.0.1';
+		// $c->user_agent = 'Chrome';
+		//$c->created_users_id = $user->id;
+
+		$page->of(false);
+		$page->dashboard_note->add($c);
+		$page->save('dashboard_note');
+		$page->of(true);
+
 
 	}
 
