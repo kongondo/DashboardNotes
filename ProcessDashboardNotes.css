@@ -17,6 +17,7 @@
 
  /** heading **/
 div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
+div#dn_single_note header {margin-top: 30px}
 
  /** div **/
  div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;}
@@ -48,6 +49,10 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
  div.mm_actions_wrapper, div#top_pager {width: 100%;}
  div.dn_note_footer {padding-right: 10px;}
 
+ div#dn_note_responses {max-width: 50%; margin-top: 30px;}
+
+ div#dn_note_text {font-size: 1.25em; padding-bottom: 25px; border-bottom: 1px solid #e5e8ec;}
+
  /** span **/
 span.dn_note_view_edit {
     position: absolute;
@@ -69,6 +74,8 @@ span.dn_note_view_edit_divider {
 }
 
 span.dn_note_priority_meta {font-weight: bolder;}
+
+span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3px;}
 
  /** form **/
 
@@ -142,13 +149,22 @@ span.dn_note_priority_meta {font-weight: bolder;}
  .gridImage--select {background-color: #e83561 !important;}
  .gridImage--select .gridImage__icon {background-color: #e83561; color: white; display: block;}
  .gridImage--select .gridImage__icon:hover {background-color: #e83561;}
- .gridImage--select:hover .gridImage__edit {display: none;}
+ .gridImage--select:hover .gridImage__edit, .gridImage--select:hover .gridImage__locked, .gridImage--select:hover .dn_note_view_edit_divider {
+     display: none;
+    }
+
  .gridImage--select:hover .gridImage__icon:hover {background-color: #e83561;}
  .gridImage--select:hover .gridImage__inner {background: rgba(232, 53, 97, 0.3);}
 /* @todo: experimental */
 /* li.gridImage.dn_low_priority {border: 1px solid orange;}
 li.gridImage.dn_normal_priority {border: 1px solid green;}
 li.gridImage.dn_high_priority {border: 1px solid red;} */
+
+
+/** article **/
+div#dn_note_responses ul.dn_threaded_comments article.uk-comment {background-color:#1c2836; background-color: rgba(237, 241, 247, 0.5);padding:20px; border-radius: 10px; /* color:white; */}
+
+div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; padding-right:15px}
 
 
  /** anchor **/
@@ -170,6 +186,6 @@ li.gridImage.dn_high_priority {border: 1px solid red;} */
  /* .gridImage:hover .gridImage__edit, .gridImage:hover .gridImage__locked {display: block; } */
  a.gridImage__locked {vertical-align: sub;}
 
- a.dn_create_note, a.dn_back_to_all_notes {display: block; margin-bottom: 20px !important;}
+ a.dn_create_note, a.dn_back_to_all_notes {display: block; margin-bottom: 30px !important;}
 
  /** i **/
