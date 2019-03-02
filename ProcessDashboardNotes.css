@@ -20,7 +20,9 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
 div#dn_single_note header {margin-top: 30px}
 
  /** div **/
- div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;}
+ /* div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;} */
+ /* @todo: moving width and height inline (configurable) */
+ div#dn_notes_container div.dn_note {padding: 15px;}
  div#dn_notes_container {clear: both;}
  div#bottom_pager {margin: 1.25em 0;  height: 3.125em;}
  div#dn_create_new_note {margin-top: 20px !important;}
@@ -160,19 +162,13 @@ span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3
 li.gridImage.dn_normal_priority {border: 1px solid green;}
 li.gridImage.dn_high_priority {border: 1px solid red;} */
 
-
 /** article **/
 div#dn_note_responses ul.dn_threaded_comments article.uk-comment {background-color:#1c2836; background-color: rgba(237, 241, 247, 0.5);padding:20px; border-radius: 10px; /* color:white; */}
-
 div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; padding-right:15px}
-
 
  /** anchor **/
  div#dn_menu ul li a:first-child {padding-left: 0;}
- div#dn_menu a.dn_on {
-     color: #354b60;
-     font-weight: bold;
- }
+ div#dn_menu a.dn_on {color: #354b60;font-weight: bold;}
  a.gridImage__edit, a.gridImage__locked {
     display: inline-block;
     color: white !important;
