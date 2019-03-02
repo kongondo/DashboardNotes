@@ -17,7 +17,7 @@
 
  /** heading **/
 div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
-div#dn_single_note header {margin-top: 30px}
+/* div#dn_single_note header {margin-top: 30px} */
 
  /** div **/
  /* div#dn_notes_container div.dn_note {width: 300px;height: 260px; padding: 15px;} */
