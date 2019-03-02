@@ -196,7 +196,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $form Form markup.
 	 *
 	 */
-	public function ___execute() {
+	public function ___execute() {		
 
 		$out = '';
 		$pgOut = '';// for pagination
@@ -230,10 +230,10 @@ class ProcessDashboardNotes extends Process implements Module {
 				$pager = $this->wire('modules')->get('MarkupPagerNav');
 				#Solution for pagination when using URL segments
 				// get the url segment string.
-				$url = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr .'/';
+				$url = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr;
 				$pgOut = $notes->renderPager(array('baseUrl' => $url));
 				 // specifically identify page1, otherwise link doesn't work: @ryancramer
-				$pgOut = str_replace($url . "'", $url . "?pageNum=1'", $pgOut);
+				//$pgOut = str_replace($url . "'", $url . "?pageNum=1'", $pgOut);
 			}
 
 		}
@@ -312,10 +312,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		return $out;
 
-
-
-		return $out;
-
 	}
 
 	/**
@@ -327,6 +323,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 */
 	public function ___executeView() {
+
+		$pageNumStr = $this->wire('input')->page;
+		bd($pageNumStr,'$pageNumStr whence we came');
 
 		$note = $this->note;
 
@@ -361,7 +360,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$out =
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				//"<h2>{$note->title}</h2>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$date} | {$author} | {$note->priority}</div>".
@@ -385,6 +384,11 @@ class ProcessDashboardNotes extends Process implements Module {
 	public function ___executeEdit() {
 
 		// @todo: how to control direct  viewing of a note that a user has no visiblity access to!? By direct access we mean guessing the note id and adding that to the param string ?id=1234! we need to do access control here then and redirect! basically, check if the page has restrictions and if the current user qualifies to view the page! throw in own method so we can reuse!
+
+		//@todo: initial work on going back to where we were on the notes dash before arrive here. Need to make sure to call condition correctly + consider renaming the 'page' param string
+
+		$pageNumStr = $this->wire('input')->page;
+		bd($pageNumStr,'$pageNumStr whence we came');
 
 		$out = "";
 		$note = $this->note;
@@ -416,7 +420,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @todo: back to all notes should return you to page where you were!
 		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$meta}</div>".
 				"</header>" .
@@ -948,6 +952,11 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		*/
 
+		bd($this->wire('input')->pageNumStr(), 'pageNumStr');
+		bd($this->wire('input')->pageNum(), 'pageNum');
+		//$pageNumber = $this->wire('input')->pageNum();
+		$pageNumStr = $this->wire('input')->pageNumStr();
+
 		$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
 		$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
 		// asterisks @todo: use this?
@@ -971,7 +980,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			// @todo: create check here to see if deletable (i.e. if note permissions prohibit deleting of others notes) > then remove trash icon: we check note created user! > remember a note is a page!: $this->notesDeleteOthers
 			// @todo: also truncate long titles!
 			//$viewURL = "<a href='{$this->baseURL}/view/?id={$note->id}'>…</a>";
-			$viewURL = $this->baseURL . "/view/?id={$note->id}";
+			$viewURL = $this->baseURL . "/view/?id={$note->id}&page={$pageNumStr}";
 
 			if($note->is(Page::statusLocked)){
 				$editURL = '#';
@@ -981,7 +990,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			// media unlocked and can be edited
 			else {
 				// @todo; no longer using modal! change! delete when done
-				$editURL = $this->baseURL . "/edit/?id={$note->id}";
+				$editURL = $this->baseURL . "/edit/?id={$note->id}&page={$pageNumStr}";
 				// @todo: change gridImage to gridNote?
 				$editClass = 'gridImage__edit';
 				$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
