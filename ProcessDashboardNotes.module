@@ -21,39 +21,39 @@
 
 class ProcessDashboardNotes extends Process implements Module {
 
-    /**
-     * Return information about this module (required)
-     *
-     * @access public
-     *
-     */
-    public static function getModuleInfo() {
+	/**
+	 * Return information about this module (required)
+	 *
+	 * @access public
+	 *
+	 */
+	public static function getModuleInfo() {
 
-        // @User role needs 'dashboard-notes' permission
-        // @$permission = 'dashboard-notes';
-        // @Installs MarkupMenuBuilder
+		// @User role needs 'dashboard-notes' permission
+		// @$permission = 'dashboard-notes';
+		// @Installs MarkupMenuBuilder
 
-        return array(
-            'title' => 'Dashboard Notes: Process',
-            'summary' => 'Create messages in ProcessWire Admin',
-            'author' => 'Francis Otieno (Kongondo)',
-            'version' => 1,
-            'href' => 'http:// processwire.com/talk/topic/xxxx/',// @todo
-            'singular' => true,
-            'autoload' => false,
-            'permission' => 'dashboard-notes',
-            'requires' => 'FieldtypeComments'
-        );
+		return array(
+			'title' => 'Dashboard Notes: Process',
+			'summary' => 'Create messages in ProcessWire Admin',
+			'author' => 'Francis Otieno (Kongondo)',
+			'version' => 1,
+			'href' => 'http:// processwire.com/talk/topic/xxxx/',// @todo
+			'singular' => true,
+			'autoload' => false,
+			'permission' => 'dashboard-notes',
+			'requires' => 'FieldtypeComments'
+		);
 
-    }
+	}
 
 
-    const PAGE_NAME = 'dashboard-notes';
+	const PAGE_NAME = 'dashboard-notes';
 
 	/** class properties **/
-    private $urlSeg1;// urlSegment1
-    private $baseURL;// base URL to this module
-    private $dateFormat;// for formatting note dates display
+	private $urlSeg1;// urlSegment1
+	private $baseURL;// base URL to this module
+	private $dateFormat;// for formatting note dates display
 
 	// @note: properties shared between single note and global settings! [for save of js scripts]
 	private $noteTextColour;// notes background colour
@@ -65,160 +65,138 @@ class ProcessDashboardNotes extends Process implements Module {
 	private $settings;// WireData()
 
 
-    /**
-     * Initialise the module. This is an optional initialisation method called before any execute methods.
-     *
-     * Initialises various class properties ready for use throughout the class.
-     *
-     * @access public
-     *
-     */
-    public function init() {
+	/**
+	 * Initialise the module. This is an optional initialisation method called before any execute methods.
+	 *
+	 * Initialises various class properties ready for use throughout the class.
+	 *
+	 * @access public
+	 *
+	 */
+	public function init() {
 
-        // @todo: delete when done!
+		// @todo: delete when done!
 
 
 
-        $user = $this->wire('user');
+		$user = $this->wire('user');
 
-        //$page = $this->wire('pages')->get(1577);
-        /*$c = new Comment();
-        $c->text = 'Theophrasti igitur, inquit, tibi liber ille placet de beata vita? Itaque hic ipse iam pridem est reiectus; Omnia contraria, quos etiam insanos esse vultis. Quae diligentissime contra Aristonem dicuntur a Chryippo. Quos quidem tibi studiose et diligenter tractandos magnopere censeo. Idemne, quod iucunde? Efficiens dici potest. Idemne potest esse dies saepius, qui semel fuit? Nunc ita separantur, ut disiuncta sint, quo nihil potest esse perversius.';
-        //$c->cite = $user->get('title|name');
-        $c->cite = 'Anyiena';
-        //$c->email = $user->email;// do we need this?
-        $c->email = "anime@hotmel.za";// do we need this?
-        //$c->website = '';
-        //$c->stars = 78;
-        //$c->upvotes = 41;
-        //$c->downvotes = 3;
-        //$c->parent_id = 165; // or another comment's id
-        $c->parent_id = 6; // or another comment's id
-        //$c->status = Comment::statusApproved;
-        //$c->status = 1;
-        // $c->ip = '127.0.0.1';
-        // $c->user_agent = 'Chrome';
-        $c->created_users_id = $user->id;
+		//$page = $this->wire('pages')->get(1577);
+		/*$c = new Comment();
+		$c->text = 'Theophrasti igitur, inquit, tibi liber ille placet de beata vita? Itaque hic ipse iam pridem est reiectus; Omnia contraria, quos etiam insanos esse vultis. Quae diligentissime contra Aristonem dicuntur a Chryippo. Quos quidem tibi studiose et diligenter tractandos magnopere censeo. Idemne, quod iucunde? Efficiens dici potest. Idemne potest esse dies saepius, qui semel fuit? Nunc ita separantur, ut disiuncta sint, quo nihil potest esse perversius.';
+		//$c->cite = $user->get('title|name');
+		$c->cite = 'Anyiena';
+		//$c->email = $user->email;// do we need this?
+		$c->email = "anime@hotmel.za";// do we need this?
+		//$c->website = '';
+		//$c->stars = 78;
+		//$c->upvotes = 41;
+		//$c->downvotes = 3;
+		//$c->parent_id = 165; // or another comment's id
+		$c->parent_id = 6; // or another comment's id
+		//$c->status = Comment::statusApproved;
+		//$c->status = 1;
+		// $c->ip = '127.0.0.1';
+		// $c->user_agent = 'Chrome';
+		$c->created_users_id = $user->id;
 
-        $page->of(false);
-        $page->dashboard_note->add($c);
-        $page->save('dashboard_note');
-        $page->of(true);
+		$page->of(false);
+		$page->dashboard_note->add($c);
+		$page->save('dashboard_note');
+		$page->of(true);
 		exit;*/
 
-        $this->settings = new WireData();
+		$this->settings = new WireData();
 
 
-        $user = $this->wire('user');
-        $this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
+		$user = $this->wire('user');
+		$this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
 
-        if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
-             throw new WirePermissionException("You have no permission to use this module");
+		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
+			 throw new WirePermissionException("You have no permission to use this module");
 
-        $sanitizer = $this->wire('sanitizer');
+		$sanitizer = $this->wire('sanitizer');
 		$this->urlSeg1 =  $sanitizer->pageName($this->wire('input')->urlSegment1);
 
-		// @todo: need to set colour separately for global vs a single note; they are cancelling each other out! + need to use global default if creating new note
+		// prepare notes global settings @note: calling before setNoteValues()  so not to cancel shared colour properties with single note values!
 		$this->setGlobalNoteValues();
 
-
-        // date formats
-        $dateFormats = array(1=>"d/m/Y", 2=>"Y/m/d",3=>"m/d/Y");
-        $dateFormat = $dateFormats[$this->settings->dateFormat];
+		// date formats
+		$dateFormats = array(1=>"d/m/Y", 2=>"Y/m/d",3=>"m/d/Y");
+		$dateFormat = $dateFormats[$this->settings->dateFormat];
 		// showing month label instead of digits
-        if($this->settings->dateMonthLabel == 2) $dateFormat = str_replace(array("/","m"),array(" ","F"), $dateFormat);
-        $this->dateFormat = $dateFormat;
+		if($this->settings->dateMonthLabel == 2) $dateFormat = str_replace(array("/","m"),array(" ","F"), $dateFormat);
+		$this->dateFormat = $dateFormat;
 
 		// initialise extra properties for a single note for viewing or editing
-        if('edit' == $this->urlSeg1 || 'view' == $this->urlSeg1) {
-            $this->setNoteValues();
-        }
+		if('edit' == $this->urlSeg1 || 'view' == $this->urlSeg1) {
+			$this->setNoteValues();
+		}		
 
-		// prepare notes global settings
-		// @todo: we need this in several places so, always calling
-        /*//else {
-		$this->setGlobalNoteValues();
-		bd($this->settings,'settings');
-        //}*/
+		// add color picker to new/edit and settings pages
+		if('edit' == $this->urlSeg1 || 'settings' == $this->urlSeg1) {
+			$this->scriptConfigurations();
+			$config = $this->wire('config');
+			$url = $config->urls->ProcessDashboardNotes;
+			$config->styles->add($url . "vendor/pickr/pickr.min.css");
+			$config->scripts->add($url . "vendor/pickr/pickr.min.js");
+		}
 
-        // add color picker to new/edit and settings pages
-        if('edit' == $this->urlSeg1 || 'settings' == $this->urlSeg1) {
-            $this->scriptConfigurations();
-            $config = $this->wire('config');
-            $url = $config->urls->ProcessDashboardNotes;
-            $config->styles->add($url . "vendor/pickr/pickr.min.css");
-            $config->scripts->add($url . "vendor/pickr/pickr.min.js");
-        }
+		$modules = $this->wire('modules');
+		$modules->get("Jquery");
+		$ui = $modules->get("JqueryUI");
+		$ui->use("modal");
+		$modules->get("JqueryMagnific");
 
-        $modules = $this->wire('modules');
-        $modules->get("Jquery");
-        $ui = $modules->get("JqueryUI");
-        $ui->use("modal");
-        // @todo; needed? if not, delete!
-        $modules->get("JqueryMagnific");
+		parent::init();
 
+	}
 
+	/* ######################### - CONFIGS - ######################### */
 
-        // @todo; delete when done! not needed
-        $this->dashboardNotesParent = $this->wire('page');
+	/**
+	 * Outputs javascript configuration values for this module.
+	 *
+	 * @access protected
+	 * @return string $scripts.
+	 *
+	 */
+	protected function scriptConfigurations() {
 
-        // @todo; delete when done! not needed
-        // cookie per user to save state of number of menus to display per pagination screen in execute()
-        $this->cookieName = $user->id . '-dashboardnotes';
-
-        // @todo; delete when done! not needed?
-        // default number of menus to show in dashboard notes landing page if no custom limit set (via post/session cookie).
-        $this->showLimit = 10;
-
-        parent::init();
-
-    }
-
-    /* ######################### - CONFIGS - ######################### */
-
-    /**
-     * Outputs javascript configuration values for this module.
-     *
-     * @access protected
-     * @return string $scripts.
-     *
-     */
-    protected function scriptConfigurations() {
-
-        // translatable strings for use in JS
-        $colourPickerSave = $this->_('Set');
-        $colourPickerClear = $this->_('Clear');
+		// translatable strings for use in JS
+		$colourPickerSave = $this->_('Set');
+		$colourPickerClear = $this->_('Clear');
 		$noteTextColour = 0 === $this->noteTextColour ? $this->noteTextColour : "rgba({$this->noteTextColour})";
 		$noteBackgroundColour = 0 === $this->noteBackgroundColour ? $this->noteBackgroundColour : "rgba({$this->noteBackgroundColour})";
 
-        // options for ajax calls
-        $options = array('config' =>
-            array(
+		// options for ajax calls
+		$options = array('config' =>
+			array(
 				'colourPickerDefaultTextColour' => $noteTextColour,
 				'colourPickerDefaultBackgroundColour' => $noteBackgroundColour,
-                'colourPickerSave' => $colourPickerSave,
-                'colourPickerClear' => $colourPickerClear,
-            )
-        );
+				'colourPickerSave' => $colourPickerSave,
+				'colourPickerClear' => $colourPickerClear,
+			)
+		);
 
-        $scripts = $this->wire('config')->js($this->className(), $options);
+		$scripts = $this->wire('config')->js($this->className(), $options);
 
-        return $scripts;
+		return $scripts;
 
-    }
+	}
 
-    /* ######################### - VIEWS - ######################### */
+	/* ######################### - VIEWS - ######################### */
 
-    /**
-     * Displays a list of the menus.
-     *
-     * This function is executed when a menu with Dashboard Notes Process assigned is accessed.
-     *
-     * @access public
-     * @return string $form Form markup.
-     *
-     */
-    public function ___execute() {
+	/**
+	 * Displays a list of the menus.
+	 *
+	 * This function is executed when a menu with Dashboard Notes Process assigned is accessed.
+	 *
+	 * @access public
+	 * @return string $form Form markup.
+	 *
+	 */
+	public function ___execute() {
 
 		$out = '';
 		$pgOut = '';// for pagination
@@ -264,12 +242,12 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		###############
 
-        // create form for adding new note (page)
-        $form = $modules->get('InputfieldForm');
-        $form->attr('id', 'dn_notes_bulk');
-        $form->action = './';
-        $form->method = 'post';
-        //$form->description = $this->_('Notes');// @todo? needed?
+		// create form for adding new note (page)
+		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_notes_bulk');
+		$form->action = './';
+		$form->method = 'post';
+		//$form->description = $this->_('Notes');// @todo? needed?
 
 		// select dropdown
 		$label = '<label id="dn_action_select_label" for="dn_action_select">' . $this->_("Action") . '</label>';
@@ -332,23 +310,23 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$out .= $form->render();
 
-        return $out;
+		return $out;
 
 
 
-        return $out;
+		return $out;
 
 	}
 
 	/**
-     * Renders a note for viewing and responses if enabled.
-     *
-     *
-     * @access public
-     * @return string $form Form markup. @todo
-     *
-     */
-    public function ___executeView() {
+	 * Renders a note for viewing and responses if enabled.
+	 *
+	 *
+	 * @access public
+	 * @return string $form Form markup. @todo
+	 *
+	 */
+	public function ___executeView() {
 
 		$note = $this->note;
 
@@ -360,22 +338,22 @@ class ProcessDashboardNotes extends Process implements Module {
 		// for comments/responses to note
 		$depth = $this->settings->maxReply + 1;// since we start by minusing 1
 
-        // @todo
+		// @todo
 		$noteResponses = '';
 		// @todo: if responses allowed, fetch existing ones
 		if($note->reply == 1) {
-            if(!$note->dashboard_note) {
-                // @todo: ok html?
-                $noteResponses = "<p>" . $this->_('No responses posted yet') . "</p>";
-            }
+			if(!$note->dashboard_note) {
+				// @todo: ok html?
+				$noteResponses = "<p>" . $this->_('No responses posted yet') . "</p>";
+			}
 
-            else {
-                $noteResponses =
-                    "<h3 id='dn_note_responses_header'>". $this->_('Responses') . "</h3>" .
-                    $this->renderThreadedComments($note->dashboard_note,$depth);
-            }
+			else {
+				$noteResponses =
+					"<h3 id='dn_note_responses_header'>". $this->_('Responses') . "</h3>" .
+					$this->renderThreadedComments($note->dashboard_note,$depth);
+			}
 
-            $noteResponses = "<div id='dn_note_responses'>".$noteResponses. $this->renderReplyForm()."</div>";
+			$noteResponses = "<div id='dn_note_responses'>".$noteResponses. $this->renderReplyForm()."</div>";
 
 		}
 
@@ -393,18 +371,20 @@ class ProcessDashboardNotes extends Process implements Module {
 			"</div>";
 		return $out;
 
-    }
+	}
 
-    /**
-     * Renders a single note for editing. @todo
+	/**
+	 * Renders a single note for editing. @todo
 	 *
 	 * Caters for both new and existing notes.
-     *
-     * @access public
-     * @return string $out Create/Edit note markup.
-     *
-     */
-    public function ___executeEdit() {
+	 *
+	 * @access public
+	 * @return string $out Create/Edit note markup.
+	 *
+	 */
+	public function ___executeEdit() {
+
+		// @todo: how to control direct  viewing of a note that a user has no visiblity access to!? By direct access we mean guessing the note id and adding that to the param string ?id=1234! we need to do access control here then and redirect! basically, check if the page has restrictions and if the current user qualifies to view the page! throw in own method so we can reuse!
 
 		$out = "";
 		$note = $this->note;
@@ -413,12 +393,17 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 		if($note->title) {
+			if($note->is(Page::statusLocked)) $this->warning($this->_('This note is locked for edits. Unlock it first to edit.'));
 			$headline = $note->title;
 			$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
 			// @todo; configurable field to get author name!
 			$author = $note->createdUser->name;
+			// asterisks @todo: use this?
+			$priorities = array(1=>"&#42;",2=>"&#42;&#42;",3=>"&#42;&#42;&#42;");
+			$notePriority = $priorities[$note->priority];
 			// @todo: sort out priority icons!
-			$meta = "{$date} | {$author} | {$note->priority}";
+			//$meta = "{$date} | {$author} | {$note->priority}";
+			$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span>";
 		}
 
 		else {
@@ -437,470 +422,480 @@ class ProcessDashboardNotes extends Process implements Module {
 				"</header>" .
 			"</div>";
 
-        // create form for adding new note (page)
-        $form = $modules->get('InputfieldForm');
-        $form->attr('id', 'dn_note_edit');
-        $form->action = './';
-        $form->method = 'post';
-        //$form->description = $note->title ? '' : $this->_('New Note');
+		// create form for adding new note (page)
+		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_note_edit');
+		$form->action = './';
+		$form->method = 'post';
+		//$form->description = $note->title ? '' : $this->_('New Note');
 
-        // note: page ID
-        $f = $modules->get('InputfieldHidden');
-        $f->attr('name', 'dn_note_page_id');
-        $f->attr('value', (int)$note->id);
+		// note: page ID
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('name', 'dn_note_page_id');
+		$f->attr('value', (int)$note->id);
 
-        $form->add($f);
+		$form->add($f);
 
-        // note: old/current name (hidden input) @note: helps to determine if note title is changing + checks for duplication
-        $f = $modules->get('InputfieldHidden');
-        $f->attr('name', 'dn_note_edit_title');
-        $f->attr('value', $note->title);
+		// note: old/current name (hidden input) @note: helps to determine if note title is changing + checks for duplication
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('name', 'dn_note_edit_title');
+		$f->attr('value', $note->title);
 
-        $form->add($f);
+		$form->add($f);
 
-        // new note: title (text)
-        $f = $modules->get('InputfieldText');
-        $f->attr('name', 'dn_note_title');
-        $f->attr('value', $note->title);
-        $f->description = $this->_('A title is required.');
-        $f->label = $this->_('Title');
-        $f->required = true;
+		// new note: title (text)
+		$f = $modules->get('InputfieldText');
+		$f->attr('name', 'dn_note_title');
+		$f->attr('value', $note->title);
+		$f->description = $this->_('A title is required.');
+		$f->label = $this->_('Title');
+		$f->required = true;
 
-        $form->add($f);
+		$form->add($f);
 
-        // new note: inputfield textarea
-        $f = $modules->get('InputfieldTextarea');
-        $f->attr('name', 'dn_note_text');
-        $f->attr('value', $note->text);
-        $f->label = $this->_('Text');// @todo: change label?
-        $f->description = $this->_('Contents of your note. This is required.');
-        $f->required = true;
-        $f->rows = 5;
+		// new note: inputfield textarea
+		$f = $modules->get('InputfieldTextarea');
+		$f->attr('name', 'dn_note_text');
+		$f->attr('value', $note->text);
+		$f->label = $this->_('Text');// @todo: change label?
+		$f->description = $this->_('Contents of your note. This is required.');
+		$f->required = true;
+		$f->rows = 5;
 
-        $form->add($f);
+		$form->add($f);
 
 
-        ######## SETTINGS #######
+		######## SETTINGS #######
 
-        $fieldset = $modules->get('InputfieldFieldset');
-        $fieldset->attr('id', 'dn_note_settings');
-        $fieldset->label = $this->_('Settings');
-        $fieldset->collapsed = Inputfield::collapsedYes;
+		$fieldset = $modules->get('InputfieldFieldset');
+		$fieldset->attr('id', 'dn_note_settings');
+		$fieldset->label = $this->_('Settings');
+		$fieldset->collapsed = Inputfield::collapsedYes;
 
-        /* ## note priority ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_priority');
-        $f->attr('value', $note->priority);
-        $f->label =  $this->_('Priority');
-        $f->notes = $this->_('Specify note priority/urgency.');
+		/* ## note priority ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_priority');
+		$f->attr('value', $note->priority);
+		$f->label =  $this->_('Priority');
+		$f->notes = $this->_('Specify note priority/urgency.');
 
-        // @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
+		// @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
 
-        $radioOptions = array (
-            1 => $this->_('Low'),
-            2 => $this->_('Normal'),
-            3 => $this->_('High'),
-         );
+		$radioOptions = array (
+			1 => $this->_('Low'),
+			2 => $this->_('Normal'),
+			3 => $this->_('High'),
+		 );
 
-        $f->addOptions($radioOptions);
+		$f->addOptions($radioOptions);
 
-        $fieldset->add($f);
+		$fieldset->add($f);
 
-        /* ## note text colour ## */
-		$textColourMarkup = "<div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div>";
-        $f = $modules->get('InputfieldMarkup');
-		$f->attr('value', $textColourMarkup);
-        $f->label = $this->_('Text Colour');
-        $f->notes = $this->_('Pick a text colour for the note. If none is picked, it will default to the current CSS text colour.');
+		/* ## notes text and background colours ## */
+		$textColourLabel = $this->_('Text Colour');
+		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";		 
+		
+		$backgroundColourLabel = $this->_('Background Colour');
+		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
-        $fieldset->add($f);
+		$coloursMarkup = "<div uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
 
-        // hidden input to store selected/set note text colour. a value of 0 means no colour set.
-        $f = $modules->get('InputfieldHidden');
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $coloursMarkup);
+		$f->label = $this->_('Note Colours');
+		$f->notes = $this->_('Pick text and background colours for this note. For the text, If none is picked, it will default to the current CSS text colour. For the background, the default is no background colour. Please note that if you have specified defaults colours in your global settings, those will be applied here if this is a new note. If you wish to override those, please select different colours for this note.');
+
+		$fieldset->add($f);
+
+		// hidden input to store selected/set note text colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_text_colour');
 		// @note: we only save the values (e.g. "12,45,23,1")
 		// @note: for display and for JS configs we add the correct formatting rgba() around the values
-        $f->attr('value', $note->textColour);
+		$f->attr('value', $note->textColour);
 		$fieldset->add($f);
 
-		/* ## note background colour ## */
-		$backgroundColourMarkup = "<div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div>";
-        $f = $modules->get('InputfieldMarkup');
-		$f->attr('value', $backgroundColourMarkup);
-        $f->label = $this->_('Background Colour');
-        $f->notes = $this->_('Pick a background colour for the note. Default is no background colour.');
-
-        $fieldset->add($f);
-
-        // hidden input to store selected/set note background colour. a value of 0 means no colour set.
-        $f = $modules->get('InputfieldHidden');
+		// hidden input to store selected/set note background colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_background_colour');
 		// @note: we only save the values (e.g. "12,45,23,1")
 		// @note: for display and for JS configs we add the correct formatting rgba() around the values
-        $f->attr('value', $note->backgroundColour);
-        $fieldset->add($f);
+		$f->attr('value', $note->backgroundColour);
+		$fieldset->add($f);
 
-        /* ## note replies ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_allow_replies');
-        $f->attr('value', $note->reply);
-        $f->label =  $this->_('Allow Replies');
-        $f->notes = $this->_('Specify if others can reply to this note.');
+		/* ## note replies ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_allow_replies');
+		$f->attr('value', $note->reply);
+		$f->label =  $this->_('Allow Replies');
+		$f->notes = $this->_('Specify if others can reply to this note.');
 
-        // @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
 
-        $radioOptions = array (
-            1 => $this->_('Yes'),
-            2 => $this->_('No'),
-        );
+		$f->addOptions($radioOptions);
 
-        $f->addOptions($radioOptions);
+		$fieldset->add($f);
 
-        $fieldset->add($f);
+		/* ## note locked for edits ## */
+		$locked = $note->is(Page::statusLocked) ? 1 : 2;
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_locked');
+		$f->attr('value', $locked);
+		$f->label =  $this->_('Lock');
+		$f->notes = $this->_('Specify if this note is locked for edits. Locked notes cannot be edited or deleted.');
 
-        /* ## note visibility ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_visibility_limit');
-        $f->attr('value', $note->limitVisibility);
-        $f->label =  $this->_('Visibility');
-        //$f->collapsed = Inputfield::collapsedYes;
-        $f->notes = $this->_('Specify who should be able to view this note. You can limit by roles, permissions or users. Otherwise, the note will be visible to all who can access Dashboard Notes.');
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
 
-        $radioOptions = array (
-            1 => $this->_('Visible to all with Dashboard Notes Access'),
-            2 => $this->_('Roles'),
-            3 => $this->_('Permissions'),
-            4 => $this->_('Users'),
-        );
+		$f->addOptions($radioOptions);
 
-        $f->addOptions($radioOptions);
+		$fieldset->add($f);
 
-        $fieldset->add($f);
+		/* ## note visibility ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_visibility_limit');
+		$f->attr('value', $note->limitVisibility);
+		$f->label =  $this->_('Visibility');
+		//$f->collapsed = Inputfield::collapsedYes;
+		$f->notes = $this->_('Specify who should be able to view this note. You can limit by roles, permissions or users. Otherwise, the note will be visible to all who can access Dashboard Notes.');
 
-        // @todo: move to function + show if!
+		$radioOptions = array (
+			1 => $this->_('Visible to all with Dashboard Notes Access'),
+			2 => $this->_('Roles'),
+			3 => $this->_('Permissions'),
+			4 => $this->_('Users'),
+		);
 
-        // note visibility: by role
-        $f = $modules->get('InputfieldAsmSelect');
-        $f->attr('name', "dn_note_limit_role");
-        $f->attr('value', (2 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
-        $f->label = $this->_('Roles Limit');
-        $f->description = $this->_("Select roles allowed to view this note.");
-        $f->showIf = 'dn_note_visibility_limit=2';
-        $f->requiredIf = 'dn_note_visibility_limit=2';
+		$f->addOptions($radioOptions);
 
-        $roles = $this->getRoles();
+		$fieldset->add($f);
 
-        $f->addOptions($roles);
+		// @todo: move to function + show if!
 
-        $fieldset->add($f);
+		// note visibility: by role
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_note_limit_role");
+		$f->attr('value', (2 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
+		$f->label = $this->_('Roles Limit');
+		$f->description = $this->_("Select roles allowed to view this note.");
+		$f->showIf = 'dn_note_visibility_limit=2';
+		$f->requiredIf = 'dn_note_visibility_limit=2';
 
-        // note visibility: by permission
-        $f = $modules->get('InputfieldAsmSelect');
-        $f->attr('name', "dn_note_limit_permission");
-        $f->attr('value', (3 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
-        $f->label = $this->_('Permissions Limit');
-        $f->description = $this->_("Select permissions allowed to view this note.");
-        $f->showIf = 'dn_note_visibility_limit=3';
-        $f->requiredIf = 'dn_note_visibility_limit=3';
+		$roles = $this->getRoles();
 
-        $permissions = $this->getPermissions();
+		$f->addOptions($roles);
 
-        $f->addOptions($permissions);
+		$fieldset->add($f);
 
-        $fieldset->add($f);
+		// note visibility: by permission
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_note_limit_permission");
+		$f->attr('value', (3 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
+		$f->label = $this->_('Permissions Limit');
+		$f->description = $this->_("Select permissions allowed to view this note.");
+		$f->showIf = 'dn_note_visibility_limit=3';
+		$f->requiredIf = 'dn_note_visibility_limit=3';
 
-        // note visibility: by permission
-        $f = $modules->get('InputfieldAsmSelect');
-        $f->attr('name', "dn_note_limit_users");
-        $f->attr('value', (4 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
-        $f->label = $this->_('Users Limit');
-        $f->description = $this->_("Select users who can view this note.");
-        $f->showIf = 'dn_note_visibility_limit=4';
-        $f->requiredIf = 'dn_note_visibility_limit=4';
+		$permissions = $this->getPermissions();
 
-        $users = $this->getUsers();
+		$f->addOptions($permissions);
 
-        $f->addOptions($users);
+		$fieldset->add($f);
 
-        $fieldset->add($f);
+		// note visibility: by permission
+		$f = $modules->get('InputfieldAsmSelect');
+		$f->attr('name', "dn_note_limit_users");
+		$f->attr('value', (4 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
+		$f->label = $this->_('Users Limit');
+		$f->description = $this->_("Select users who can view this note.");
+		$f->showIf = 'dn_note_visibility_limit=4';
+		$f->requiredIf = 'dn_note_visibility_limit=4';
 
-        ########
+		$users = $this->getUsers();
 
-        $form->add($fieldset);
+		$f->addOptions($users);
 
-        // new note: submit button
-        $f = $modules->get('InputfieldSubmit');
-        $f->attr('id+name', 'dn_note_edit_btn');
-        $f->value = $this->_('Save');
+		$fieldset->add($f);
+
+		########
+
+		$form->add($fieldset);
+
+		// new note: submit button
+		$f = $modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'dn_note_edit_btn');
+		$f->value = $this->_('Save');
 		$f->showInHeader();
 
-        $form->add($f);
+		$form->add($f);
 
 
 
-        // post: saving single new or edited note
-        $post = $this->wire('input')->post;
+		// post: saving single new or edited note
+		$post = $this->wire('input')->post;
 		if($post->dn_note_edit_btn) $this->save($form);
 
 		$out .= $form->render();
 
-        return $out;
+		return $out;
 
-    }
+	}
 
-    /**
-     * Renders global notes settings for editing. @todo
-     *
-     * @access public
-     * @return string $form Form markup.
-     *
-     */
-    public function ___executeSettings() {
+	/**
+	 * Renders global notes settings for editing. @todo
+	 *
+	 * @access public
+	 * @return string $form Form markup.
+	 *
+	 */
+	public function ___executeSettings() {
 
 		// @todo: add setting to select field to show note author name rather than user name?
 		// @todo: what about setting to show author image?
 
+		$out = '';
 
-        $out = '';
+		$out .=
+			"<div id='dn_top_wrapper' uk-grid>" .
+				"<div class='uk-width-expand'>" .
+					$this->renderMenu() .
+				"</div>" .
+			"</div>";
 
-        $out .=
-            "<div id='dn_top_wrapper' uk-grid>" .
-                "<div class='uk-width-expand'>" .
-                    $this->renderMenu() .
-                "</div>" .
-            "</div>";
+		$modules = $this->wire('modules');
 
-        $modules = $this->wire('modules');
+		// create form for all notes settings
+		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_note_settings');
+		$form->action = './';
+		$form->method = 'post';
+		//$form->description = $this->_('Settings');
 
-        // create form for all notes settings
-        $form = $modules->get('InputfieldForm');
-        $form->attr('id', 'dn_note_settings');
-        $form->action = './';
-        $form->method = 'post';
-        //$form->description = $this->_('Settings');
+		/* ## notes date format ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_date_format');
+		$f->attr('value', $this->settings->dateFormat);
+		$f->label =  $this->_('Date Format');
+		$f->notes = $this->_('Display format for note created dates.');
 
-        /* ## notes date format ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_date_format');
-        $f->attr('value', $this->settings->dateFormat);
-        $f->label =  $this->_('Date Format');
-        $f->notes = $this->_('Display format for note created dates.');
+		$day = $this->_('Day');
+		$month = $this->_('Month');
+		$year = $this->_('Year');
 
-        $day = $this->_('Day');
-        $month = $this->_('Month');
-        $year = $this->_('Year');
+		$radioOptions = array (
+			1 => "$day $month $year (30/04/2015)",
+			2 => "$year $month $day (2015/04/30)",
+			3 => "$month $day $year (04/30/2015)",
+		);
 
-        $radioOptions = array (
-            1 => "$day $month $year (30/04/2015)",
-            2 => "$year $month $day (2015/04/30)",
-            3 => "$month $day $year (04/30/2015)",
-        );
-
-        $f->addOptions($radioOptions);
-
-        $form->add($f);
-
-        /* ## notes date month label ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_date_month_label');
-        $f->attr('value', $this->settings->dateMonthLabel);
-        $f->label =  $this->_('Date Month Label');
-        $f->notes = $this->_('Specify if to show month name or number in notes\' dates.');
-
-        $monthName = $this->_('Month Text');
-        $monthNumber = $this->_('Month Digits');
-
-        $radioOptions = array (
-            1 => "$monthNumber (30/04/2015)",
-            2 => "$monthName (30 April 2015)",
-        );
-
-        $f->addOptions($radioOptions);
+		$f->addOptions($radioOptions);
 
 		$form->add($f);
 
-		 /* ## notes default text colour ## */
-		 $textColourMarkup = "<div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div>";
-		 $f = $modules->get('InputfieldMarkup');
-		 $f->attr('value', $textColourMarkup);
-		 $f->label = $this->_('Default Text Colour');
-		 $f->notes = $this->_('Pick a default text colour for all notes. If none is picked, it will default to the current CSS text colour.');
+		/* ## notes date month label ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_date_month_label');
+		$f->attr('value', $this->settings->dateMonthLabel);
+		$f->label =  $this->_('Date Month Label');
+		$f->notes = $this->_('Specify if to show month name or number in notes\' dates.');
 
-		 $form->add($f);
+		$monthName = $this->_('Month Text');
+		$monthNumber = $this->_('Month Digits');
 
-		 // hidden input to store selected default note text colour. a value of 0 means no colour set.
-		 $f = $modules->get('InputfieldHidden');
-		 $f->attr('id+name', 'dn_note_text_colour');
-		 // @note: we only save the values (e.g. "12,45,23,1")
-		 // @note: for display and for JS configs we add the correct formatting rgba() around the values
-		 $f->attr('value', $this->settings->textColour);
-		 $form->add($f);
+		$radioOptions = array (
+			1 => "$monthNumber (30/04/2015)",
+			2 => "$monthName (30 April 2015)",
+		);
 
-        /* ## notes default background backgroundColour ## */
-        $backgroundColourMarkup = "<div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div>";
-        $f = $modules->get('InputfieldMarkup');
-		$f->attr('value', $backgroundColourMarkup);
-        $f->label = $this->_('Default Background Colour');
-        $f->notes = $this->_('Pick a default background colour for all notes. Default is no background colour.');
+		$f->addOptions($radioOptions);
 
-        $form->add($f);
+		$form->add($f);
 
-        // hidden input to store selected default note background colour. a value of 0 means no colour set.
-        $f = $modules->get('InputfieldHidden');
-        $f->attr('id+name', 'dn_note_background_colour');
-        $f->attr('value', $this->settings->backgroundColour);// @todo: need to change this->backgroundColour in scripts!
-        $form->add($f);
+		/* ## notes default text and background colours ## */
+		$textColourLabel = $this->_('Text Colour');
+		$textColourMarkup = "<div class='uk-width-1-2@s'><h4>{$textColourLabel}</h4><div id='dn_text_colour_picker' class='dn_colour_picker' data-colour='dn_note_text_colour' data-colour-type='text'></div></div>";		 
+		
+		$backgroundColourLabel = $this->_('Background Colour');
+		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
-        /* ## notes display sort ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_sort');
-        $f->attr('value', $this->settings->sort);
-        $f->label =  $this->_('Display Sort');
-        $f->notes = $this->_('How to sort display of notes.');
+		$coloursMarkup = "<div uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
 
-        $radioOptions = array (
-            1 => $this->_('Date'),
-            2 => $this->_('Title'),
-            // @todo: unsure about this since requires setting priority as a note page propery during runtime
-            3 => $this->_('Priority'),
-        );
+		$f = $modules->get('InputfieldMarkup');	
+		$f->attr('value', $coloursMarkup);
+		$f->label = $this->_('Default Colours');
+		$f->notes = $this->_('Pick default text and background colours for all new notes. For texts, If none is picked, it will default to the current CSS text colour. For backgrounds, the default is no background colour. Please note this setting only applies when creating new notes.');
 
-        $f->addOptions($radioOptions);
+		$form->add($f);
 
-        $form->add($f);
+		// hidden input to store selected default note text colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_text_colour');
+		// @note: we only save the values (e.g. "12,45,23,1")
+		// @note: for display and for JS configs we add the correct formatting rgba() around the values
+		$f->attr('value', $this->settings->textColour);
+		$form->add($f);
 
-        /* ## notes sort direction ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_sort_direction');
-        $f->attr('value', $this->settings->sortDir);
-        $f->label =  $this->_('Sort Direction');
+		// hidden input to store selected default note background colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_background_colour');
+		$f->attr('value', $this->settings->backgroundColour);// @todo: need to change this->backgroundColour in scripts!
+		$form->add($f);
 
-        $radioOptions = array (
-            1 => $this->_('Ascending'),
-            2 => $this->_('Descending'),
-        );
+		/* ## notes display sort ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_sort');
+		$f->attr('value', $this->settings->sort);
+		$f->label =  $this->_('Display Sort');
+		$f->notes = $this->_('How to sort display of notes.');
 
-        $f->addOptions($radioOptions);
+		$radioOptions = array (
+			1 => $this->_('Date'),
+			2 => $this->_('Title'),
+			// @todo: unsure about this since requires setting priority as a note page propery during runtime
+			3 => $this->_('Priority'),
+		);
 
-        $form->add($f);
+		$f->addOptions($radioOptions);
 
-        /* ## notes delete each others' ## */
-        $f = $modules->get('InputfieldRadios');
-        $f->attr('name', 'dn_note_delete_others');
-        $f->attr('value', $this->settings->deleteOther);
-        $f->label =  $this->_('Users Can Delete Notes They Did Not Create?');
-        $f->notes = $this->_('Specify if users can delete each others notes.');
+		$form->add($f);
 
-        $radioOptions = array (
-            1 => $this->_('Yes'),
-            2 => $this->_('No'),
-        );
+		/* ## notes sort direction ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_sort_direction');
+		$f->attr('value', $this->settings->sortDir);
+		$f->label =  $this->_('Sort Direction');
 
-        $f->addOptions($radioOptions);
+		$radioOptions = array (
+			1 => $this->_('Ascending'),
+			2 => $this->_('Descending'),
+		);
 
-        $form->add($f);
+		$f->addOptions($radioOptions);
 
-        /* ## notes maximum display per page ## */
-        $f = $modules->get('InputfieldInteger');
-        $f->attr('name', 'dn_note_max_display');
-        $f->attr('value', $this->settings->displayMax);
-        $f->label = $this->_('Display Limit');
-        $f->description = $this->_('Maximum number of notes to display per page.');
+		$form->add($f);
 
-        $form->add($f);
+		/* ## notes delete each others' ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_delete_others');
+		$f->attr('value', $this->settings->deleteOther);
+		$f->label =  $this->_('Users Can Delete Notes They Did Not Create?');
+		$f->notes = $this->_('Specify if users can delete each others notes.');
 
-        /* ## note maximum reply depth ## */
-        $f = $modules->get('InputfieldInteger');
-        $f->attr('name', 'dn_note_max_reply_depth');
-        $f->attr('value', $this->settings->maxReply);// 0 = no maximum
-        $f->label = $this->_('Reply Depth');// @todo: change label?
-        $f->description = $this->_('Maximum allowed nested depth for replies to notes.');
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
 
-        $form->add($f);
+		$f->addOptions($radioOptions);
 
-        // save button
-        $f = $modules->get('InputfieldSubmit');
-        $f->attr('id+name', 'dn_notes_settings_btn');
-        $f->showInHeader();
-        $f->attr('value', $this->_('Save'));
+		$form->add($f);
 
-        $form->add($f);
+		/* ## notes maximum display per page ## */
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_max_display');
+		$f->attr('value', $this->settings->displayMax);
+		$f->label = $this->_('Display Limit');
+		$f->description = $this->_('Maximum number of notes to display per page.');
 
-        // post: saving all note settings
-        $post = $this->wire('input')->post;
-        if($post->dn_notes_settings_btn) $this->save($form);
+		$form->add($f);
 
-        $out .= $form->render();
+		/* ## note maximum reply depth ## */
+		$f = $modules->get('InputfieldInteger');
+		$f->attr('name', 'dn_note_max_reply_depth');
+		$f->attr('value', $this->settings->maxReply);// 0 = no maximum
+		$f->label = $this->_('Reply Depth');// @todo: change label?
+		$f->description = $this->_('Maximum allowed nested depth for replies to notes.');
 
-        return $out;
+		$form->add($f);
 
-    }
+		// save button
+		$f = $modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'dn_notes_settings_btn');
+		$f->showInHeader();
+		$f->attr('value', $this->_('Save'));
 
+		$form->add($f);
 
-    /* ######################### - RENDER/MARKUP - ######################### */
+		// post: saving all note settings
+		$post = $this->wire('input')->post;
+		if($post->dn_notes_settings_btn) $this->save($form);
 
-    /**
-     * Render navigation for module pages use.
-     *
-     * @access private
-     * @return string $out Markup of rendered navigation.
-     *
-     */
-    private function renderMenu() {
-
-        $allNotesURL = $this->baseURL;
-        $settingsURL = $this->baseURL . "/settings/";
-
-        $allNotesText = $this->_('Notes');
-        //$addNoteText = $this->_('Notes');
-        $allNoteSettingsText = $this->_('Settings');
-
-        $menuItemsArray = array(
-
-            'all' => array( 'href' => $this->baseURL, 'link_text' => $allNotesText),
-            'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
-
-        );
-
-        $menuItems = '';
-        $on = " class='dn_on uk-active'";
-        $off = "";
-        foreach ($menuItemsArray as $key => $value) {
-            $href = $value['href'];
-            $linkText = $value['link_text'];
-            $class = '';
-            if(!$this->urlSeg1 && $key != 'settings') $class = $on;
-            elseif($this->urlSeg1 && $this->urlSeg1 == $key) $class = $on;
-
-            $menuItems .= "<li><a href='{$href}'$class><span>{$linkText}</span></a></li>";
-        }
-
-        $out =
-                "<nav class='uk-navbar-container uk-navbar-transparent' uk-navbar>" .
-                    "<div id='dn_menu' class='uk-navbar-left'>".
-                        "<ul class='nav uk-navbar-nav pw-primary-nav'>" .
-                            $menuItems .
-                        "</ul>" .
-                    "</div>" .
-                "</nav>";
+		$out .= $form->render();
 
 		return $out;
 
-    }
+	}
 
-    /**
-     * Render markup for link to create new note.
-     *
-     * @access private
-     * @return string $out Markup of link to create new note.
-     *
-     */
-    private function renderCreateNote() {
-        $createNoteText = $this->_('New Note');
-        $createNoteURL = $this->baseURL . "/edit/";
-        $out = "<a href='{$createNoteURL}' class='ui-helper-clearfix dn_create_note'><i class='fa fa-fw fa-plus-circle'></i>{$createNoteText}</a>";
-        return $out;
-    }
+
+	/* ######################### - RENDER/MARKUP - ######################### */
+
+	/**
+	 * Render navigation for module pages use.
+	 *
+	 * @access private
+	 * @return string $out Markup of rendered navigation.
+	 *
+	 */
+	private function renderMenu() {
+
+		$allNotesURL = $this->baseURL;
+		$settingsURL = $this->baseURL . "/settings/";
+
+		$allNotesText = $this->_('Notes');
+		//$addNoteText = $this->_('Notes');
+		$allNoteSettingsText = $this->_('Settings');
+
+		$menuItemsArray = array(
+
+			'all' => array( 'href' => $this->baseURL, 'link_text' => $allNotesText),
+			'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
+
+		);
+
+		$menuItems = '';
+		$on = " class='dn_on uk-active'";
+		$off = "";
+		foreach ($menuItemsArray as $key => $value) {
+			$href = $value['href'];
+			$linkText = $value['link_text'];
+			$class = '';
+			if(!$this->urlSeg1 && $key != 'settings') $class = $on;
+			elseif($this->urlSeg1 && $this->urlSeg1 == $key) $class = $on;
+
+			$menuItems .= "<li><a href='{$href}'$class><span>{$linkText}</span></a></li>";
+		}
+
+		$out =
+				"<nav class='uk-navbar-container uk-navbar-transparent' uk-navbar>" .
+					"<div id='dn_menu' class='uk-navbar-left'>".
+						"<ul class='nav uk-navbar-nav pw-primary-nav'>" .
+							$menuItems .
+						"</ul>" .
+					"</div>" .
+				"</nav>";
+
+		return $out;
+
+	}
+
+	/**
+	 * Render markup for link to create new note.
+	 *
+	 * @access private
+	 * @return string $out Markup of link to create new note.
+	 *
+	 */
+	private function renderCreateNote() {
+		$createNoteText = $this->_('New Note');
+		$createNoteURL = $this->baseURL . "/edit/";
+		$out = "<a href='{$createNoteURL}' class='ui-helper-clearfix dn_create_note'><i class='fa fa-fw fa-plus-circle'></i>{$createNoteText}</a>";
+		return $out;
+	}
 
 	/**
 	 * Render notes for display on landing page.
@@ -955,24 +950,28 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
 		$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
+		// asterisks @todo: use this?
+		$priorities = array(1=>"&#42;",2=>"&#42;&#42;",3=>"&#42;&#42;&#42;");
+		//$priorities = array(1=>"fa-arrow-circle-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-up");
+		// fa-exclamation-triangle  fa-exclamation-circle 
+		//$priorities = array(1=>"fa-arrow-circle-o-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-o-up");
+		$priorityClasses = array(1=>'dn_low_priority',2=>'dn_normal_priority',3=>'dn_high_priority');
 
-
-        $out = '';
+		$out = '';
 
 		// @todo! edit!
 		$out .= "<ul class='dn_notes_grid ui-helper-clearfix' data-gridmode='grid' data-gridsize='130'>";
 
 
-        foreach ($notes as $note) {
+		foreach ($notes as $note) {
 
-            // add margin left if required
+			// add margin left if required
 			#$classMarginLeft = $i ? " uk-margin-left" : "";
 			// @todo: create check here to see if editable (i.e. if locked)
 			// @todo: create check here to see if deletable (i.e. if note permissions prohibit deleting of others notes) > then remove trash icon: we check note created user! > remember a note is a page!: $this->notesDeleteOthers
-            // @todo: also truncate long titles!
-            //$viewURL = "<a href='{$this->baseURL}/view/?id={$note->id}'>…</a>";
+			// @todo: also truncate long titles!
+			//$viewURL = "<a href='{$this->baseURL}/view/?id={$note->id}'>…</a>";
 			$viewURL = $this->baseURL . "/view/?id={$note->id}";
-
 
 			if($note->is(Page::statusLocked)){
 				$editURL = '#';
@@ -995,38 +994,52 @@ class ProcessDashboardNotes extends Process implements Module {
 			$backgroundColour = $note->backgroundColour ? " style='background-color:rgba({$note->backgroundColour});'" : '';
 
 			// @todo: we'll use this to do visibility checks and skip if required
-            $limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
+			$limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
 
-            // @todo: truncate first?
+			// @todo: truncate first?
 
 			// grab the comment text and clean it
-            $text = htmlentities($note->text, ENT_QUOTES, "UTF-8");
-            $text = str_replace("\n\n", "</p><p>", $text);
-            $text = str_replace("\n", "<br />", $text);
+			$text = htmlentities($note->text, ENT_QUOTES, "UTF-8");
+			$text = str_replace("\n\n", "</p><p>", $text);
+			$text = str_replace("\n", "<br />", $text);
 
-            $text = $this->wire('sanitizer')->truncate($text, [
-                'type' => 'punctuation',
-                'maxLength' => 150,
-                'visible' => true,
-                'keepFormatTags' => true,
-                'more' => $viewURL
-              ]);
-
-			$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
+			$text = $this->wire('sanitizer')->truncate($text, [
+				'type' => 'punctuation',
+				'maxLength' => 150,
+				'visible' => true,
+				'keepFormatTags' => true,
+				'more' => "..."
+			  ]);
+			
+			// meta
+			$date = date($this->dateFormat, $note->created);
 			// @todo; configurable field to get author name!
 			$author = $note->createdUser->name;
+			$notePriority = $priorities[$note->priority];
+			//fa-comments, fa-comments-o, fa-comment, fa-comment-o 
+			$commentsCount = "<span class='fa fa-comments-o'>{$note->dashboard_note->count()}</span> ";
+			$priorityClass = " " . $priorityClasses[$note->priority];
+			
+
+			//$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span> | $commentsCount";
+			$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span>";
+
+			##################
 
 			// @todo: truncate $note->text + add Read More or View what if no comments?
 			// @todo: edit as required! e.g., do we need li#id?! + the data-attr?
 			$out .=
-				"<li id='note-{$note->id}' class='gridImage ui-widget dn_note' data-note-value='{$note->id}'{$textColour}>" .
+				"<li id='note-{$note->id}' class='gridImage ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
 					"<div class='dn_note gridImage__overflow'{$backgroundColour}>" .
 						"<header class='uk-comment-header'>" .
 							"<h4 class='uk-comment-title uk-margin-remove'{$textColour}>{$note->title}</h4>".
-							"<div class='uk-comment-meta'{$textColour}>{$date} | {$author} | {$note->priority}</div>".
+							"<div class='uk-comment-meta'{$textColour}>{$meta}</div>".
 						"</header>" .
 						// @todo: here and elsewhere, change these uk classes? are they not for comments?
 						"<div class='uk-comment-body'>" . $text . "</div>" .
+						"<div class='uk-position-bottom-right uk-text-small dn_note_footer'>" .
+							"<span>{$commentsCount}</span>" .
+						"</div>" .
 					"</div>" .
 					"<div class='gridImage__hover'>" .
 						"<div class='gridImage__inner'>" .
@@ -1043,120 +1056,120 @@ class ProcessDashboardNotes extends Process implements Module {
 						"</div>" .
 					"</div>" .
 				"</li>";
-        }
+		}
 
-        $out .= "</ul>";
+		$out .= "</ul>";
 
-        return $out;
-
-
-    }
+		return $out;
 
 
-    /**
-     * Recursively render list of threaded comments.
+	}
+
+
+	/**
+	 * Recursively render list of threaded comments.
 
 	 * @param CommentArray $comments Array of comments.
 	 * @param integer $depth How deep to nest..
-     * @param integer $parent At which point of the hierarchy to start rendering from.
-     * @param integer $first Helper parameter to know if on first list item.
-     * @return string $out Markup of threaded comments.
-     *
-     */
-    private function renderThreadedComments($comments, $depth = 1, $parent = 0, $first = 0) {
+	 * @param integer $parent At which point of the hierarchy to start rendering from.
+	 * @param integer $first Helper parameter to know if on first list item.
+	 * @return string $out Markup of threaded comments.
+	 *
+	 */
+	private function renderThreadedComments($comments, $depth = 1, $parent = 0, $first = 0) {
 
-        $out = '';
+		$out = '';
 		$depth -= 1;
-        $replyText = $depth == 1 ? '' : $this->_('Reply');
-        $hasChild = false;
+		$replyText = $depth == 1 ? '' : $this->_('Reply');
+		$hasChild = false;
 
-        foreach ($comments as $comment) {
+		foreach ($comments as $comment) {
 
-            // @todo: sort out \n and \t? not really important here though!
+			// @todo: sort out \n and \t? not really important here though!
 
-            // grab the comment text and clean it
-            $commentText = htmlentities($comment->text, ENT_QUOTES, "UTF-8");
-            $commentText = str_replace("\n\n", "</p><p>", $commentText);
-            $commentText = str_replace("\n", "<br />", $commentText);
+			// grab the comment text and clean it
+			$commentText = htmlentities($comment->text, ENT_QUOTES, "UTF-8");
+			$commentText = str_replace("\n\n", "</p><p>", $commentText);
+			$commentText = str_replace("\n", "<br />", $commentText);
 
 			$commentDate = date( $this->dateFormat, $comment->created);
 
-            ## - build nested comments - ##
+			## - build nested comments - ##
 
-            // if this comment item is a parent; create the inner-items/child-comment-items
-            if ($comment->parent_id == $parent && $depth > 0) {
-                // if this is the first child
-                if ($hasChild === false) {
-                    $hasChild = true;// This is a parent
-                    if ($first == 0){
-                        $out .= "<ul id='dn_threaded_comments_main' class='uk-comment-list'>";
-                        $first = 1;
-                    }
-                    else $out .= "<ul class='uk-comment-list'>";
-                }
+			// if this comment item is a parent; create the inner-items/child-comment-items
+			if ($comment->parent_id == $parent && $depth > 0) {
+				// if this is the first child
+				if ($hasChild === false) {
+					$hasChild = true;// This is a parent
+					if ($first == 0){
+						$out .= "<ul id='dn_threaded_comments_main' class='uk-comment-list'>";
+						$first = 1;
+					}
+					else $out .= "<ul class='uk-comment-list'>";
+				}
 
-                $out .=
-                    "<li>" .
-                        "<article class='uk-comment'>" .
-                            "<header class='uk-comment-header'>" .
-                                "<h4 class='uk-comment-title'>{$comment->cite}</h4>" .
-                                "<div class='uk-comment-meta'>{$commentDate}</div>" .
-                            "</header>" .
-                            "<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
+				$out .=
+					"<li>" .
+						"<article class='uk-comment'>" .
+							"<header class='uk-comment-header'>" .
+								"<h4 class='uk-comment-title'>{$comment->cite}</h4>" .
+								"<div class='uk-comment-meta'>{$commentDate}</div>" .
+							"</header>" .
+							"<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
 
-                            // @todo: amend this! No need for some of the stuff here? Do we need the line?
-                            "<div class='dn_note_comment_footer uk-margin-small-top uk-text-small'>" .
+							// @todo: amend this! No need for some of the stuff here? Do we need the line?
+							"<div class='dn_note_comment_footer uk-margin-small-top uk-text-small'>" .
 								"<p class='dn_note_comment_action uk-margin-small'>" .
 									"<a class='dn_note_comment_action_reply' data-comment-id='{$comment->id}' href='#'>" .
 										$replyText .
 									"</a>" .
 								"</p>" .
 							"</div>" .// close div.dn_note_comment_footer
-                        "</article>";
-                ######################### generate child-comment items [recursion] #########################
-                $out .= $this->renderThreadedComments($comments, $depth, $comment->id, $first);
-                // close the <li>
-                $out .= "</li>";
-            }// end if parent
+						"</article>";
+				######################### generate child-comment items [recursion] #########################
+				$out .= $this->renderThreadedComments($comments, $depth, $comment->id, $first);
+				// close the <li>
+				$out .= "</li>";
+			}// end if parent
 
-        }// end foreach $comments
+		}// end foreach $comments
 
-        if ($hasChild === true) $out .= "</ul>";
+		if ($hasChild === true) $out .= "</ul>";
 
-        return $out;
+		return $out;
 
-    }
+	}
 
-    /**
-     * Render markup of a note or comment's reply form.
-     *
-     * This is used for both when replying to the note itself or when replying to other comments (i.e. comment with a parent ID).
-     * When replying to other replies, this form is cloned on the fly using JavaScript.
-     *
-     * @access private
-     * @return void
-     */
-    private function renderReplyForm() {
+	/**
+	 * Render markup of a note or comment's reply form.
+	 *
+	 * This is used for both when replying to the note itself or when replying to other comments (i.e. comment with a parent ID).
+	 * When replying to other replies, this form is cloned on the fly using JavaScript.
+	 *
+	 * @access private
+	 * @return void
+	 */
+	private function renderReplyForm() {
 
-        $out =
-            "<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' style='display: flex;'>" .
-                "<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-                    "<label>" .
-                        "<span class='uk-form-label'>". $this->_('Response') . "</span>" .
-                        "<textarea name='text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
-                    "</label>" .
-                "</div>" .
-                "<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-                    "<button type='submit' class='uk-button uk-button-primary' name='{dn_note_reply_btn}' value='1'>" .
-                        $this->_('Reply') .
-                    "</button>" .
-                    // @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
-                    "<input type='hidden' name='dn_note_page_id' value='0'>" .
-                    "<input type='hidden' name='dn_note_parent_id' value='0'>" .
-                "</div>" .
-            "</form>";
+		$out =
+			"<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' style='display: flex;'>" .
+				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+					"<label>" .
+						"<span class='uk-form-label'>". $this->_('Response') . "</span>" .
+						"<textarea name='text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
+					"</label>" .
+				"</div>" .
+				"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
+					"<button type='submit' class='uk-button uk-button-primary' name='{dn_note_reply_btn}' value='1'>" .
+						$this->_('Reply') .
+					"</button>" .
+					// @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
+					"<input type='hidden' name='dn_note_page_id' value='0'>" .
+					"<input type='hidden' name='dn_note_parent_id' value='0'>" .
+				"</div>" .
+			"</form>";
 
-        return $out;
+		return $out;
 
 	}
 
@@ -1177,137 +1190,137 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 
-    /* ######################### - CRUD ACTIONS - ######################### */
+	/* ######################### - CRUD ACTIONS - ######################### */
 
-    /**
-     * Processes ProcessDashboardNotes form inputs (CRUD).
-     *
-     * CRUD - Processes all the form input sent from execute() and executeEdit().
-     *
-     * @access private
-     * @param object $form Sent form values.
-     *
-     */
-    private function save($form) {
+	/**
+	 * Processes ProcessDashboardNotes form inputs (CRUD).
+	 *
+	 * CRUD - Processes all the form input sent from execute() and executeEdit().
+	 *
+	 * @access private
+	 * @param object $form Sent form values.
+	 *
+	 */
+	private function save($form) {
 
-        $post = $this->wire('input')->post;
+		$post = $this->wire('input')->post;
 
-        // process form
-        $form->processInput($post);
+		// process form
+		$form->processInput($post);
 
-        // save new note or edit existing note
-        if ($post->dn_note_edit_btn) $this->saveNote($post);
-        // notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
-        elseif($post->dn_actions_btn) $this->saveBulkActions($post);
-        // save: note replies
-        elseif($post->dn_note_reply_btn) $this->saveNoteReply($post);
-        // save: note settings
-        elseif ($post->dn_notes_settings_btn) $this->saveSettings($post);
+		// save new note or edit existing note
+		if ($post->dn_note_edit_btn) $this->saveNote($post);
+		// notes bulk actions: lock/unlock, trash/delete, change priority, allow replies
+		elseif($post->dn_actions_btn) $this->saveBulkActions($post);
+		// save: note replies
+		elseif($post->dn_note_reply_btn) $this->saveNoteReply($post);
+		// save: note settings
+		elseif ($post->dn_notes_settings_btn) $this->saveSettings($post);
 
-    }
+	}
 
-    /**
-     * Save new or edit existing notes.
-     *
-     * @access private
-     * @param array $post Input Post with new or existing note to save.
-     * @access private
-     *
-     */
-    private function saveNote($post) {
+	/**
+	 * Save new or edit existing notes.
+	 *
+	 * @access private
+	 * @param array $post Input Post with new or existing note to save.
+	 * @access private
+	 *
+	 */
+	private function saveNote($post) {
 
-        $pages = $this->wire('pages');
-        $sanitizer = $this->wire('sanitizer');
+		$pages = $this->wire('pages');
+		$sanitizer = $this->wire('sanitizer');
 
 		$notePageID = (int) $post->dn_note_page_id;
-        $noteTitle = $sanitizer->text($post->dn_note_title);
-        $noteName = $sanitizer->pageName($noteTitle);
-        $noteText = $sanitizer->textarea($post->dn_note_text);
-        $nameClash = false;
+		$noteTitle = $sanitizer->text($post->dn_note_title);
+		$noteName = $sanitizer->pageName($noteTitle);
+		$noteText = $sanitizer->textarea($post->dn_note_text);
+		$nameClash = false;
 
 
-        // redirect back if no title or no text
-        if (!$noteTitle || !$noteText)  {
+		// redirect back if no title or no text
+		if (!$noteTitle || !$noteText)  {
 			// @todo: error here, redirect!? ProcessWire will throw error anyway?
 			$this->error($this->_('A title and text are required.'));
 			$this->wire('session')->redirect($this->baseURL . "/edit/?id={$notePageID}");
-        }
+		}
 
-        $parent = $this->wire('page')->child('include=all');
+		$parent = $this->wire('page')->child('include=all');
 
-        // settings
-        $settingsArray = array();
-        $settingsArray['text'] = $noteText;
+		// settings
+		$settingsArray = array();
+		$settingsArray['text'] = $noteText;
 		$settingsArray['priority'] = (int) $post->dn_note_priority;
 
 		$settingsArray['textColour'] = str_replace(array("rgba(", ")"), "", $post->dn_note_text_colour);
 		$settingsArray['backgroundColour'] = str_replace(array("rgba(", ")"), "", $post->dn_note_background_colour);
-        $settingsArray['reply'] = (int) $post->dn_note_allow_replies;
-        $noteLimit = (int) $post->dn_note_visibility_limit;
-        $settingsArray['limitVisibility'] = $noteLimit;
-        $limitIDs = array();
+		$settingsArray['reply'] = (int) $post->dn_note_allow_replies;
+		$noteLimit = (int) $post->dn_note_visibility_limit;
+		$settingsArray['limitVisibility'] = $noteLimit;
+		$limitIDs = array();
 
-        if(2 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_role);
-        elseif(3 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_permission);
-        elseif(4 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_users);
-        $settingsArray['limitVisibilityIDs'] = $limitIDs;
+		if(2 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_role);
+		elseif(3 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_permission);
+		elseif(4 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_users);
+		$settingsArray['limitVisibilityIDs'] = $limitIDs;
 
-        // new note
-        if(!$notePageID ) {
-            $page = new Page();
-            $page->template = "dashboard-note";
-            $page->parent = $parent;
-            // sanitize and convert to a URL friendly page name
-            if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
-        }
+		// new note
+		if(!$notePageID ) {
+			$page = new Page();
+			$page->template = "dashboard-note";
+			$page->parent = $parent;
+			// sanitize and convert to a URL friendly page name
+			if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
+		}
 
-        // existing note
-        else {
-            $page = $pages->get($notePageID);
+		// existing note
+		else {
+			$page = $pages->get($notePageID);
 
 			// no such page found
-            // @todo: redirect back to edit page with error
-            if(!$page) {
+			// @todo: redirect back to edit page with error
+			if(!$page) {
 				$this->error($this->_('Note not found.'));
 				// redirect with error
 				$this->wire('session')->redirect($this->baseURL . "/edit/");
-            }
+			}
 
-            if($page->title != $noteTitle) {
-                if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
-            }
+			if($page->title != $noteTitle) {
+				if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
+			}
 
-        }
+		}
 
 		// name clash (note with specified name already exists), redirect
-        if($nameClash) {
+		if($nameClash) {
 			$this->error($this->_('A note with that name already exists! Choose a different name.'));
-            // redirect
-            $this->wire('session')->redirect($this->baseURL . "/edit/?id={$page->id}");
-        }
+			// redirect
+			$this->wire('session')->redirect($this->baseURL . "/edit/?id={$page->id}");
+		}
 
-        $page->title = $noteTitle;
-        $page->name = $noteName;
+		$page->title = $noteTitle;
+		$page->name = $noteName;
 
-        $settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
-        $page->dashboard_notes_settings = $settingsJSON;
-        $page->save();
+		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
+		$page->dashboard_notes_settings = $settingsJSON;
+		$page->save();
 
 		$this->message($this->_('Note saved.'));
-        // redirect to edit after save
+		// redirect to edit after save
 		$this->wire('session')->redirect($this->baseURL . "/edit/?id={$page->id}");
 
 	}
 
 	/**
-     * Save new or edit existing notes.
-     *
-     * @access private
-     * @param array $post Input Post with new or existing note to save.
-     * @access private
-     *
-     */
-    private function saveBulkActions($post) {
+	 * Save new or edit existing notes.
+	 *
+	 * @access private
+	 * @param array $post Input Post with new or existing note to save.
+	 * @access private
+	 *
+	 */
+	private function saveBulkActions($post) {
 
 		bd($post->dn_actions_btn,'dn_actions_btn in bulk actions');
 		bd($post->dn_action_select,'dn_action_select in bulk actions');
@@ -1316,43 +1329,43 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-    /**
-     * Save global default notes settings.
-     *
-     * @access private
-     * @param array $post Input Post with notes settings.
-     * @access private
-     *
-     */
-    private function saveSettings($post) {
+	/**
+	 * Save global default notes settings.
+	 *
+	 * @access private
+	 * @param array $post Input Post with notes settings.
+	 * @access private
+	 *
+	 */
+	private function saveSettings($post) {
 
-        $pages = $this->wire('pages');
-        $sanitizer = $this->wire('sanitizer');
+		$pages = $this->wire('pages');
+		$sanitizer = $this->wire('sanitizer');
 
-        $notesSettingsPage = $this->wire('page')->child('include=all,template=dashboard-notes');
+		$notesSettingsPage = $this->wire('page')->child('include=all,template=dashboard-notes');
 
-        // settings
-        $settingsArray = array();
-        $settingsArray['dateFormat'] = (int) $post->dn_note_date_format;
-        $settingsArray['dateMonthLabel'] = (int) $post->dn_note_date_month_label;
+		// settings
+		$settingsArray = array();
+		$settingsArray['dateFormat'] = (int) $post->dn_note_date_format;
+		$settingsArray['dateMonthLabel'] = (int) $post->dn_note_date_month_label;
 		$settingsArray['textColour'] = $sanitizer->text(str_replace(array("rgba(", ")"), "", $post->dn_note_text_colour));
 		$settingsArray['backgroundColour'] = $sanitizer->text(str_replace(array("rgba(", ")"), "", $post->dn_note_background_colour));
-        $settingsArray['sort'] = (int) $post->dn_note_sort;
-        $settingsArray['sortDir'] = (int) $post->dn_note_sort_direction;
-        $settingsArray['deleteOther'] = (int) $post->dn_note_delete_others;
-        $settingsArray['displayMax'] = (int) $post->dn_note_max_display;
-        $settingsArray['maxReply'] = (int) $post->dn_note_max_reply_depth;
+		$settingsArray['sort'] = (int) $post->dn_note_sort;
+		$settingsArray['sortDir'] = (int) $post->dn_note_sort_direction;
+		$settingsArray['deleteOther'] = (int) $post->dn_note_delete_others;
+		$settingsArray['displayMax'] = (int) $post->dn_note_max_display;
+		$settingsArray['maxReply'] = (int) $post->dn_note_max_reply_depth;
 
-        // save
-        $settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
-        $notesSettingsPage->dashboard_notes_settings = $settingsJSON;
-        $notesSettingsPage->save('dashboard_notes_settings');
+		// save
+		$settingsJSON = count($settingsArray) ? wireEncodeJSON($settingsArray) : '';// @note: wont save empties
+		$notesSettingsPage->dashboard_notes_settings = $settingsJSON;
+		$notesSettingsPage->save('dashboard_notes_settings');
 
 		$this->message($this->_('Settings saved.'));
 		// @note: needed to properly reload page, i.e. to trigger loading of JS config scripts, hence redirect here
-        $this->wire('session')->redirect($this->baseURL . "/settings/");
+		$this->wire('session')->redirect($this->baseURL . "/settings/");
 
-    }
+	}
 
 	/* ######################### - GETTERS - ######################### */
 
@@ -1394,80 +1407,85 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-    /**
-     * Get all roles (minus guest) for selection for note visibility.
-     *
-     * @access private
-     * @return void
-     *
-     */
-    private function getRoles() {
-        $roles = array();
-        foreach($this->wire('roles') as $role) {
-            if($role->name == 'guest') continue;
-            $roles[$role->id] = $role->name;
-        }
-        return $roles;
-    }
+	/**
+	 * Get all roles (minus guest) for selection for note visibility.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */
+	private function getRoles() {
+		$roles = array();
+		foreach($this->wire('roles') as $role) {
+			if($role->name == 'guest') continue;
+			$roles[$role->id] = $role->name;
+		}
+		return $roles;
+	}
 
-    /**
-     * Get all permissions for selection for note visibility.
-     *
-     * @access private
-     * @return void
-     *
-     */
-    private function getPermissions() {
-        $permissions = array();
-        foreach($this->wire('permissions') as $permission) {
-            $permissions[$permission->id] = $permission->get("title|name");
-        }
-        return $permissions;
-    }
+	/**
+	 * Get all permissions for selection for note visibility.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */
+	private function getPermissions() {
+		$permissions = array();
+		foreach($this->wire('permissions') as $permission) {
+			$permissions[$permission->id] = $permission->get("title|name");
+		}
+		return $permissions;
+	}
 
-    /**
-     * Get all users (minus guests) for selection for note visibility.
-     *
-     * @access private
-     * @return void
-     *
-     */
-    private function getUsers() {
-        $users = array();
-        foreach($this->wire('users') as $user) {
-            if(!$user->hasRole('superuser') && $user->hasRole('guest')) continue;
-            $users[$user->id] = $user->name;
-        }
-        return $users;
-    }
+	/**
+	 * Get all users (minus guests) for selection for note visibility.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */
+	private function getUsers() {
+		$users = array();
+		foreach($this->wire('users') as $user) {
+			if(!$user->hasRole('superuser') && $user->hasRole('guest')) continue;
+			$users[$user->id] = $user->name;
+		}
+		return $users;
+	}
 
-    /* ######################### - SETTERS - ######################### */
+	/* ######################### - SETTERS - ######################### */
 
-    /**
-     * Set class properties for adding versus editing a note.
-     *
-     * @access private
-     * @return void
-     *
-     */
-    private function setNoteValues() {
+	/**
+	 * Set class properties for adding versus editing a note.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */
+	private function setNoteValues() {
 
 		$defaultSettings = array('priority'=>2,'textColour'=>0,'backgroundColour'=>0,'reply'=>1,'limitVisibility'=>1,'limitVisibilityIDs'=>array());
 		$savedSettings = array();
 
-        $notePageID = (int) $this->wire('input')->get->id;
-        if($notePageID) {
-            $page = $this->wire('pages')->get($notePageID);
-            if($page->id > 0) {
+		$notePageID = (int) $this->wire('input')->get->id;
+		if($notePageID) {
+			$page = $this->wire('pages')->get($notePageID);
+			if($page->id > 0) {
 				$this->note = $page;
 				// ## settings ##
-                $savedSettings = json_decode($page->dashboard_notes_settings, true);
+				$savedSettings = json_decode($page->dashboard_notes_settings, true);
 			}
 			// no page found, go back to all notes
 			else $this->wire('session')->redirect($this->baseURL);
-        }
+		}
 		// new note: instantiate empty WireData()
-		else $this->note = new WireData();
+		else {
+			$this->note = new WireData();
+			// check if we have default colours for NEW notes set
+			if($this->settings->textColour) $defaultSettings['textColour'] = $this->settings->textColour;
+			if($this->settings->backgroundColour) $defaultSettings['backgroundColour'] = $this->settings->backgroundColour;
+		}
 
 		$settings = array_merge($defaultSettings,$savedSettings);
 
@@ -1477,21 +1495,21 @@ class ProcessDashboardNotes extends Process implements Module {
 		$this->noteTextColour = $this->note->textColour;
 		$this->noteBackgroundColour = $this->note->backgroundColour;
 
-    }
+	}
 
-    /**
-     * Set class properties for global settings.
-     *
-     * @access private
-     * @return void
-     *
-     */
-    private function setGlobalNoteValues() {
+	/**
+	 * Set class properties for global settings.
+	 *
+	 * @access private
+	 * @return void
+	 *
+	 */	
+	private function setGlobalNoteValues() {
 
 		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0);
 
-        $notesSettingsPage = $this->wire('page')->child('include=all');
-        $savedSettingsJSON = $notesSettingsPage->dashboard_notes_settings;
+		$notesSettingsPage = $this->wire('page')->child('include=all');
+		$savedSettingsJSON = $notesSettingsPage->dashboard_notes_settings;
 		$savedSettings = $savedSettingsJSON ? json_decode($savedSettingsJSON, true) : array();
 		$settings = array_merge($defaultSettings,$savedSettings);
 		// set property values to WireData $this->settings;
@@ -1500,349 +1518,349 @@ class ProcessDashboardNotes extends Process implements Module {
 		$this->noteTextColour = $this->settings->textColour;
 		$this->noteBackgroundColour = $this->settings->backgroundColour;
 
-    }
-
-    /* ######################### - INSTALLERS - ######################### */
-
-
-    /**
-     * Called only when the module is installed.
-     *
-     * A new page with this Process module assigned is created.
-     * A new permission 'dashboard-notes' is created.
-     * 3 fields are created.
-     * A new template 'menu_pages' is created.
-     *
-     * @access public
-     *
-     */
-    public function ___install() {
-
-        // create ProcessDashboardNotes admin page and permission if verifyInstall() was successful in its validation
-        if($this->verifyInstall($mode = null) == true) {
-            $page = new Page();
-            $page->template = 'admin';
-            $page->parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
-            $page->title = 'Dashboard Notes';
-            $page->name = self::PAGE_NAME;
-            $page->process = $this;
-            #$page->addStatus(Page::statusHidden);
-            $page->save();
-
-            $this->verifyInstall($mode = 1);// run Dashboard Notes Installer
-
-            // tell the user we created this page
-            $this->message("Dashboard Notes: Created page {$page->path}");
-        }
-
-        else throw new WireException($this->_('Dashboard Notes: Installation aborted. Check and fix reported errors first.'));
-
-        // create the permission 'dashboard-notes' and 'dashboard-notes-settings' to limit access to the module
-        $perms = array(
-            'dashboard-notes' => $this->_('Use Dashboard Notes'),
-            // @todo?
-            //'dashboard-notes-settings' => $this->_('Edit Dashboard Notes Settings'),
-        );
-
-        foreach ($perms as $k => $v) {
-            $permission = $this->wire('permissions')->get($k);
-            if (!$permission->id) {
-                $p = new Permission();
-                $p->name = $k;
-                $p->title = $v;
-                $p->save();
-            }
-        }
-
-        // tell the user we created this module's permissions
-        //$this->message('Dashboard Notes: Created new permissions dashboard-notes and dashboard-notes-settings.');
-        $this->message('Dashboard Notes: Created new permission dashboard-notes.');
-
-    }
-
-    /**
-     * Called only when the module is uninstalled.
-     *
-     * This should return the site to the same state it was in before the module was installed.
-     * Deletes 3 fields, template and permission created on install as well as created menu pages.
-     *
-     * @access public
-     *
-     */
-    public function ___uninstall() {
-
-        $pages = $this->wire('pages');
-
-        // find and delete the page we installed, locating it by the process field (which has the module ID)
-        // it would probably be sufficient just to locate by name, but this is just to be extra sure.
-        $moduleID = $this->wire('modules')->getModuleID($this);
-        $dnPage = $pages->get("template=admin, process=$moduleID, name=" . self::PAGE_NAME);
-        // $page = $pages->get('template=admin, name='.self::PAGE_NAME);
-
-        if($dnPage->id) {
-            // if we found the page, let the user know and delete it
-            $this->message($this->_('Dashboard Notes: Deleted Page: ') . $dnPage->path);
-            // recursively delete the dashboard notes page (i.e. including all its children (the note parent and its children the notes pages))
-            $pages->delete($dnPage, true);
-            // also delete any note pages that may have been left in the trash
-            foreach ($pages->find('template=dashboard-note, status>=' . Page::statusTrash) as $p) $p->delete();
-        }
-
-        // find and delete the Dashboard Notes permissions and let the user know
-        // @note: @todo: currently using only 1 permission!
-        //$perms = array('dashboard-notes','dashboard-notes-settings');
-        $perms = array('dashboard-notes');
-
-        foreach ($perms as $p) {
-            $permission = $this->wire('permissions')->get($p);
-            if ($permission->id) $permission->delete();
-        }
-
-        // tell the user we created this module's permission
-        // @note: @todo: currently using only 1 permission!
-        //$this->message('Dashboard Notes: Deleted permissions dashboard-notes and dashboard-notes-settings.');
-        $this->message('Dashboard Notes: Deleted permission dashboard-notes.');
-
-        #############
-
-        // find and delete the 2 templates used by our notes
-        $templates = array('dashboard-note', 'dashboard-notes');
-        foreach ($templates as $template) {
-            $t = $this->wire('templates')->get($template);
-            if($t->id) {
-                $this->wire('templates')->delete($t);
-                $this->wire('fieldgroups')->delete($t->fieldgroup);// delete the associated fieldgroups
-            }
-        }
-        $this->message('Dashboard Notes: Deleted Templates dashboard-note and dashboard-notes');
-
-        #############
-
-        // find and delete the 2 fields used by our notes
-        $fields = array('dashboard_note', 'dashboard_notes_settings');
-        foreach ($fields as $field) {
-            $f = $this->wire('fields')->get($field);
-            if($f->id) $this->wire('fields')->delete($f);
-        }
-        $this->message('Dashboard Notes: Deleted Fields dashboard_note and dashboard_notes_settings');
-
-    }
-
-    /**
-     * Check if similar fields, templates and dashboard notes page exist before install.
-     *
-     * @access public
-     * @param null|integer $mode Whether to verify install possible (null) or commence install (1).
-     *
-     */
-    public function verifyInstall($mode = null) {
-
-        $pageCheck = '';
-
-        // if we have already verified install, proceed directly to first step of installer
-        if($mode == 1) return $this->createFields();
-
-        // 1. ###### First we check if Dashboard Notes Admin page, fields and templates already exist.
-        // If yes to any of these, we abort installation and return error messages
-
-        // check if Dashboard Notes page already exists in Admin
-        $parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
-        $page = $this->wire('pages')->get("parent=$parent, template=admin, include=all, name=".self::PAGE_NAME);
-        if($page->id && $page->id > 0) $pageCheck = $page->title;
-
-        $pageExist = $pageCheck ? true : false;// we'll use this later + $pageCheck to show error
-
-        // check if Dashboard Notes fields already exist
-        $fields  = array('note' => 'dashboard_note','settings' => 'dashboard_notes_settings');
-
-        $fieldsCheck = array();
-        foreach ($fields as $key => $value) {if($this->wire('fields')->get($value)) $fieldsCheck [] = $this->wire('fields')->get($value)->name;}
-        $fieldsExist = count($fieldsCheck) ? true : false;
-
-        $templates = array('note' => 'dashboard-note','notes' => 'dashboard-notes');
-
-        $templatesCheck = array();
-        foreach ($templates as $template) {if($this->wire('templates')->get($template)) $templatesCheck [] = $this->wire('templates')->get($template)->name;}
-
-        $templatesExist = count($templatesCheck) ? true : false;
-
-        if($pageExist == true){
-            $failedPage = $pageCheck;
-            $this->error($this->_("Cannot install Dashboard Notes Admin page. A page named 'dashboard-notes' is already in use under Admin. Its title is: {$failedPage}."));
-        }
-
-        if($fieldsExist == true){
-            $failedFields = implode(', ', $fieldsCheck);
-            $this->error($this->_("Cannot install Dashboard Notes fields. Some field names already in use. These are: {$failedFields}."));
-        }
-
-        if($templatesExist == true){
-            $failedTemplates = implode(', ', $templatesCheck);
-            $this->error($this->_("Cannot install Dashboard Notes templates. Some template names already in use. These are: {$failedTemplates}."));
-        }
-
-        //if any of our checks returned true, we abort early
-        if($pageExist == true || $fieldsExist == true || $templatesExist == true) {
-            throw new WireException($this->_('Due to the above errors, Dashboard Notes did not install. Make necessary changes and try again.'));
-            //due to above errors, we stop executing install of the following 'templates', 'fields' and 'pages'
-        }
-
-        // pass on to first step of install
-        // return true to OK first step of install
-        return true;
-
-    }
-
-    /**
-     * Create several Dashboard Notes fields.
-     *
-     * @note: We create from JSON using Field::setImportData().
-     *
-     * @access private
-     * @return $this->createTemplates().
-     *
-     */
-    private function createFields() {
-
-        // 2. ###### We create the fields we will need to add to our templates ######
-
-        $fields = $this->getFieldData();
-        $fieldNames = '';
-
-        foreach ($fields as $fieldName => $fieldData) {
-            $f = new Field();
-            $f->setImportData($fieldData);
-            $f->save();
-            $fieldNames .= $fieldName . " ";
-        }
-
-        $this->message("Dashboard Notes: Created fields $fieldNames");
-
-        // lets create some templates and add our fields to them
-        return $this->createTemplates();
-
-    }
-
-    /**
-     * Create several Dashboard Notes templates.
-     *
-     * Create templates one each for the Dashboard Notes Notes parent and for individual Notes pages.
-     * @note: We create from JSON using Template::setImportData().
-     *
-     * @access private
-     * @return $this->extraTemplateSettings().
-     *
-     */
-    private function createTemplates() {
-
-        // 3. ###### We create the templates needed by Dashboard Notes ######
-
-        $templates = $this->getTemplateData();
-        $templateNames = '';
-
-        foreach ($templates as $templateName => $templateData) {
-            $fg = new Fieldgroup();
-            $fg->name = $templateName;
-            $templateNames .= $templateName . " ";
-            foreach ($templateData['fieldgroupFields'] as $fieldname) $fg->add($fieldname);
-            $fg->save();
-            $t = new Template();
-            $t->setImportData($templateData) ;
-            $t->save();
-        }
-
-        $this->message("Dashboard Notes: Created templates $templateNames");
-
-        /* @todo?
-        // need to create this blank template file 'dashboard-notes.php' to enable MM to appear in the admin menu (view-access issues)
-        $path = $this->wire('config')->paths->templates . 'dashboard-notes.php';
-        if(!is_file($path)) {
-            $notice = "<?php namespace ProcessWire;\n\n#### - Intentionally left blank. Please do not delete this file - ###";
-            $notesTemplateFile = fopen($path, 'a');
-            fwrite($notesTemplateFile, $notice);
-            fclose($notesTemplateFile);
-        }*/
-
-        // add some extra settings ('allowed templates for children' doesn't seem to work with setImportData()? so we do it ourselves)
-        return $this->extraTemplateSettings();
-
-    }
-
-    /**
-     * Add extra settings for the 4 dashboard-specific templates.
-     *
-     * @access private
-     * @return $this->createPages().
-     *
-     */
-    private function extraTemplateSettings() {
-        // 4. ###### post-creating our templates: additional settings for the child and parent notes templates ######
-
-        $allowedChildTemplate = $this->wire('templates')->get("dashboard-note");
-        $pt = $this->wire('templates')->get('dashboard-notes');
-
-        // allowed child template for template 'dashboard-notes'
-        $pt->childTemplates = array($allowedChildTemplate->id);// needs to be added as array of template IDs
-        $pt->save();
-
-        // allowed parent template for individual notes template
-        // @note: this should work at JSON level but it's not, so doing it here as well
-        $allowedChildTemplate->parentTemplates = array($pt->id);// needs to be added as array of template IDs
-        $allowedChildTemplate->save();
-
-        return $this->createPages();
-
-    }
-
-    /**
-     * Return JSON data for installing fields for the module.
-     *
-     * @access private
-     * @return string $fieldsJSON JSON string containing fields data for use with Field::setImportData().
-     *
-     */
-    private function getFieldData() {
-        $fieldsJSON = file_get_contents(__DIR__ . "/configs/fields.json");
-        return json_decode($fieldsJSON, true);
-    }
-
-    /**
-     * Return JSON data for installing templates for the module.
-     *
-     * @access private
-     * @return string $templatesJSON JSON string containing templates data for use with Template::setImportData().
-     *
-     */
-    private function getTemplateData() {
-        $templatesJSON = file_get_contents(__DIR__ . "/configs/templates.json");
-        return json_decode($templatesJSON, true);
-    }
-
-    /**
-     * Create notes parent page.
-     *
-     *
-     * @access private
-     *
-     */
-    private function createPages() {
-
-        // 5. ###### Create the 1 parent dashboard notes page
-
-        $a = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
-        $parent = $a->child('name=dashboard-notes');
-        $template = $this->wire('templates')->get('dashboard-notes');
-
-        // create the child page of 'Dashboard Notes': This is the parent page of all notes pages!
-        $p = new Page();
-        $p->template = $template;
-        $p->parent = $parent;
-        $p->title = "Notes";
-        // @note: saving as hidden; we don't want to show in AdminThemeReno side menu
-        $p->addStatus(Page::statusHidden);
-        $p->save();
-
-    }
+	}
+
+	/* ######################### - INSTALLERS - ######################### */
+
+
+	/**
+	 * Called only when the module is installed.
+	 *
+	 * A new page with this Process module assigned is created.
+	 * A new permission 'dashboard-notes' is created.
+	 * 3 fields are created.
+	 * A new template 'menu_pages' is created.
+	 *
+	 * @access public
+	 *
+	 */
+	public function ___install() {
+
+		// create ProcessDashboardNotes admin page and permission if verifyInstall() was successful in its validation
+		if($this->verifyInstall($mode = null) == true) {
+			$page = new Page();
+			$page->template = 'admin';
+			$page->parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+			$page->title = 'Dashboard Notes';
+			$page->name = self::PAGE_NAME;
+			$page->process = $this;
+			#$page->addStatus(Page::statusHidden);
+			$page->save();
+
+			$this->verifyInstall($mode = 1);// run Dashboard Notes Installer
+
+			// tell the user we created this page
+			$this->message("Dashboard Notes: Created page {$page->path}");
+		}
+
+		else throw new WireException($this->_('Dashboard Notes: Installation aborted. Check and fix reported errors first.'));
+
+		// create the permission 'dashboard-notes' and 'dashboard-notes-settings' to limit access to the module
+		$perms = array(
+			'dashboard-notes' => $this->_('Use Dashboard Notes'),
+			// @todo?
+			//'dashboard-notes-settings' => $this->_('Edit Dashboard Notes Settings'),
+		);
+
+		foreach ($perms as $k => $v) {
+			$permission = $this->wire('permissions')->get($k);
+			if (!$permission->id) {
+				$p = new Permission();
+				$p->name = $k;
+				$p->title = $v;
+				$p->save();
+			}
+		}
+
+		// tell the user we created this module's permissions
+		//$this->message('Dashboard Notes: Created new permissions dashboard-notes and dashboard-notes-settings.');
+		$this->message('Dashboard Notes: Created new permission dashboard-notes.');
+
+	}
+
+	/**
+	 * Called only when the module is uninstalled.
+	 *
+	 * This should return the site to the same state it was in before the module was installed.
+	 * Deletes 3 fields, template and permission created on install as well as created menu pages.
+	 *
+	 * @access public
+	 *
+	 */
+	public function ___uninstall() {
+
+		$pages = $this->wire('pages');
+
+		// find and delete the page we installed, locating it by the process field (which has the module ID)
+		// it would probably be sufficient just to locate by name, but this is just to be extra sure.
+		$moduleID = $this->wire('modules')->getModuleID($this);
+		$dnPage = $pages->get("template=admin, process=$moduleID, name=" . self::PAGE_NAME);
+		// $page = $pages->get('template=admin, name='.self::PAGE_NAME);
+
+		if($dnPage->id) {
+			// if we found the page, let the user know and delete it
+			$this->message($this->_('Dashboard Notes: Deleted Page: ') . $dnPage->path);
+			// recursively delete the dashboard notes page (i.e. including all its children (the note parent and its children the notes pages))
+			$pages->delete($dnPage, true);
+			// also delete any note pages that may have been left in the trash
+			foreach ($pages->find('template=dashboard-note, status>=' . Page::statusTrash) as $p) $p->delete();
+		}
+
+		// find and delete the Dashboard Notes permissions and let the user know
+		// @note: @todo: currently using only 1 permission!
+		//$perms = array('dashboard-notes','dashboard-notes-settings');
+		$perms = array('dashboard-notes');
+
+		foreach ($perms as $p) {
+			$permission = $this->wire('permissions')->get($p);
+			if ($permission->id) $permission->delete();
+		}
+
+		// tell the user we created this module's permission
+		// @note: @todo: currently using only 1 permission!
+		//$this->message('Dashboard Notes: Deleted permissions dashboard-notes and dashboard-notes-settings.');
+		$this->message('Dashboard Notes: Deleted permission dashboard-notes.');
+
+		#############
+
+		// find and delete the 2 templates used by our notes
+		$templates = array('dashboard-note', 'dashboard-notes');
+		foreach ($templates as $template) {
+			$t = $this->wire('templates')->get($template);
+			if($t->id) {
+				$this->wire('templates')->delete($t);
+				$this->wire('fieldgroups')->delete($t->fieldgroup);// delete the associated fieldgroups
+			}
+		}
+		$this->message('Dashboard Notes: Deleted Templates dashboard-note and dashboard-notes');
+
+		#############
+
+		// find and delete the 2 fields used by our notes
+		$fields = array('dashboard_note', 'dashboard_notes_settings');
+		foreach ($fields as $field) {
+			$f = $this->wire('fields')->get($field);
+			if($f->id) $this->wire('fields')->delete($f);
+		}
+		$this->message('Dashboard Notes: Deleted Fields dashboard_note and dashboard_notes_settings');
+
+	}
+
+	/**
+	 * Check if similar fields, templates and dashboard notes page exist before install.
+	 *
+	 * @access public
+	 * @param null|integer $mode Whether to verify install possible (null) or commence install (1).
+	 *
+	 */
+	public function verifyInstall($mode = null) {
+
+		$pageCheck = '';
+
+		// if we have already verified install, proceed directly to first step of installer
+		if($mode == 1) return $this->createFields();
+
+		// 1. ###### First we check if Dashboard Notes Admin page, fields and templates already exist.
+		// If yes to any of these, we abort installation and return error messages
+
+		// check if Dashboard Notes page already exists in Admin
+		$parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+		$page = $this->wire('pages')->get("parent=$parent, template=admin, include=all, name=".self::PAGE_NAME);
+		if($page->id && $page->id > 0) $pageCheck = $page->title;
+
+		$pageExist = $pageCheck ? true : false;// we'll use this later + $pageCheck to show error
+
+		// check if Dashboard Notes fields already exist
+		$fields  = array('note' => 'dashboard_note','settings' => 'dashboard_notes_settings');
+
+		$fieldsCheck = array();
+		foreach ($fields as $key => $value) {if($this->wire('fields')->get($value)) $fieldsCheck [] = $this->wire('fields')->get($value)->name;}
+		$fieldsExist = count($fieldsCheck) ? true : false;
+
+		$templates = array('note' => 'dashboard-note','notes' => 'dashboard-notes');
+
+		$templatesCheck = array();
+		foreach ($templates as $template) {if($this->wire('templates')->get($template)) $templatesCheck [] = $this->wire('templates')->get($template)->name;}
+
+		$templatesExist = count($templatesCheck) ? true : false;
+
+		if($pageExist == true){
+			$failedPage = $pageCheck;
+			$this->error($this->_("Cannot install Dashboard Notes Admin page. A page named 'dashboard-notes' is already in use under Admin. Its title is: {$failedPage}."));
+		}
+
+		if($fieldsExist == true){
+			$failedFields = implode(', ', $fieldsCheck);
+			$this->error($this->_("Cannot install Dashboard Notes fields. Some field names already in use. These are: {$failedFields}."));
+		}
+
+		if($templatesExist == true){
+			$failedTemplates = implode(', ', $templatesCheck);
+			$this->error($this->_("Cannot install Dashboard Notes templates. Some template names already in use. These are: {$failedTemplates}."));
+		}
+
+		//if any of our checks returned true, we abort early
+		if($pageExist == true || $fieldsExist == true || $templatesExist == true) {
+			throw new WireException($this->_('Due to the above errors, Dashboard Notes did not install. Make necessary changes and try again.'));
+			//due to above errors, we stop executing install of the following 'templates', 'fields' and 'pages'
+		}
+
+		// pass on to first step of install
+		// return true to OK first step of install
+		return true;
+
+	}
+
+	/**
+	 * Create several Dashboard Notes fields.
+	 *
+	 * @note: We create from JSON using Field::setImportData().
+	 *
+	 * @access private
+	 * @return $this->createTemplates().
+	 *
+	 */
+	private function createFields() {
+
+		// 2. ###### We create the fields we will need to add to our templates ######
+
+		$fields = $this->getFieldData();
+		$fieldNames = '';
+
+		foreach ($fields as $fieldName => $fieldData) {
+			$f = new Field();
+			$f->setImportData($fieldData);
+			$f->save();
+			$fieldNames .= $fieldName . " ";
+		}
+
+		$this->message("Dashboard Notes: Created fields $fieldNames");
+
+		// lets create some templates and add our fields to them
+		return $this->createTemplates();
+
+	}
+
+	/**
+	 * Create several Dashboard Notes templates.
+	 *
+	 * Create templates one each for the Dashboard Notes Notes parent and for individual Notes pages.
+	 * @note: We create from JSON using Template::setImportData().
+	 *
+	 * @access private
+	 * @return $this->extraTemplateSettings().
+	 *
+	 */
+	private function createTemplates() {
+
+		// 3. ###### We create the templates needed by Dashboard Notes ######
+
+		$templates = $this->getTemplateData();
+		$templateNames = '';
+
+		foreach ($templates as $templateName => $templateData) {
+			$fg = new Fieldgroup();
+			$fg->name = $templateName;
+			$templateNames .= $templateName . " ";
+			foreach ($templateData['fieldgroupFields'] as $fieldname) $fg->add($fieldname);
+			$fg->save();
+			$t = new Template();
+			$t->setImportData($templateData) ;
+			$t->save();
+		}
+
+		$this->message("Dashboard Notes: Created templates $templateNames");
+
+		/* @todo?
+		// need to create this blank template file 'dashboard-notes.php' to enable MM to appear in the admin menu (view-access issues)
+		$path = $this->wire('config')->paths->templates . 'dashboard-notes.php';
+		if(!is_file($path)) {
+			$notice = "<?php namespace ProcessWire;\n\n#### - Intentionally left blank. Please do not delete this file - ###";
+			$notesTemplateFile = fopen($path, 'a');
+			fwrite($notesTemplateFile, $notice);
+			fclose($notesTemplateFile);
+		}*/
+
+		// add some extra settings ('allowed templates for children' doesn't seem to work with setImportData()? so we do it ourselves)
+		return $this->extraTemplateSettings();
+
+	}
+
+	/**
+	 * Add extra settings for the 4 dashboard-specific templates.
+	 *
+	 * @access private
+	 * @return $this->createPages().
+	 *
+	 */
+	private function extraTemplateSettings() {
+		// 4. ###### post-creating our templates: additional settings for the child and parent notes templates ######
+
+		$allowedChildTemplate = $this->wire('templates')->get("dashboard-note");
+		$pt = $this->wire('templates')->get('dashboard-notes');
+
+		// allowed child template for template 'dashboard-notes'
+		$pt->childTemplates = array($allowedChildTemplate->id);// needs to be added as array of template IDs
+		$pt->save();
+
+		// allowed parent template for individual notes template
+		// @note: this should work at JSON level but it's not, so doing it here as well
+		$allowedChildTemplate->parentTemplates = array($pt->id);// needs to be added as array of template IDs
+		$allowedChildTemplate->save();
+
+		return $this->createPages();
+
+	}
+
+	/**
+	 * Return JSON data for installing fields for the module.
+	 *
+	 * @access private
+	 * @return string $fieldsJSON JSON string containing fields data for use with Field::setImportData().
+	 *
+	 */
+	private function getFieldData() {
+		$fieldsJSON = file_get_contents(__DIR__ . "/configs/fields.json");
+		return json_decode($fieldsJSON, true);
+	}
+
+	/**
+	 * Return JSON data for installing templates for the module.
+	 *
+	 * @access private
+	 * @return string $templatesJSON JSON string containing templates data for use with Template::setImportData().
+	 *
+	 */
+	private function getTemplateData() {
+		$templatesJSON = file_get_contents(__DIR__ . "/configs/templates.json");
+		return json_decode($templatesJSON, true);
+	}
+
+	/**
+	 * Create notes parent page.
+	 *
+	 *
+	 * @access private
+	 *
+	 */
+	private function createPages() {
+
+		// 5. ###### Create the 1 parent dashboard notes page
+
+		$a = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+		$parent = $a->child('name=dashboard-notes');
+		$template = $this->wire('templates')->get('dashboard-notes');
+
+		// create the child page of 'Dashboard Notes': This is the parent page of all notes pages!
+		$p = new Page();
+		$p->template = $template;
+		$p->parent = $parent;
+		$p->title = "Notes";
+		// @note: saving as hidden; we don't want to show in AdminThemeReno side menu
+		$p->addStatus(Page::statusHidden);
+		$p->save();
+
+	}
 
 
 }
