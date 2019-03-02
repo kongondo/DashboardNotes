@@ -212,22 +212,12 @@ function ProcessDashboardNotes($) {
 			colourPickerClear = jsDashboardNotesConfigs.config.colourPickerClear;
 		}
 
-		// @todo; sort out overlapping pickers
-
-		// @todo: delete when done
-		//console.log($colourValueElement, 'hidden target element')
 		var $el, $defaultColour, $colourType, $colourValueElement;
 
 		$el = "#" + $targetElement.attr('id');
 		$colourType = $targetElement.attr('data-colour-type');
 		$colourValueElement = "#" + $targetElement.attr('data-colour');
 		$defaultColour = $colourType == "text" ? colourPickerDefaultTextColour : colourPickerDefaultBackgroundColour;
-
-		// @todo; delete when done
-		console.log($el, 'element id')
-		console.log($colourType, 'colour type (text vs background)')
-		console.log($colourValueElement, 'hidden colourValueElement id')
-		console.log($defaultColour,'defaultColour')
 
 
 		// @see optional options for more configuration.
@@ -292,7 +282,6 @@ function ProcessDashboardNotes($) {
 				var rgbaString = hsva.toRGBA().toString(); // returns rgba(r, g, b, a)
 				// save the selected color to the hidden input for note background colour
 				$updateElement.val(rgbaString);
-				console.log($colourValueElement,'UPDATED hidden target element')
 			}
 			// no background colour, so set to 0
 			else $updateElement.val(0);
