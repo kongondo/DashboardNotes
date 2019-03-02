@@ -302,6 +302,15 @@ class ProcessDashboardNotes extends Process implements Module {
 	public function ___executeView() {
 
 		$note = $this->note;
+
+		// @access-control: user has no visibility acces to this note
+		if(!$this->checkAccess($this->note)) {
+			// @todo: testing, delete error? but redirect!
+			$this->error($this->_('You have no access to this note!'));
+			$this->wire('session')->redirect($this->baseURL);
+		}
+
+
 		$out = '';
 		$replyForm = '';
 
@@ -362,6 +371,13 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeEdit() {
 
+		// @access-control: user has no visibility acces to this note
+		if(!$this->checkAccess($this->note)) {
+			// @todo: testing, delete error? but redirect!
+			$this->error($this->_('You have no access to this note!'));
+			$this->wire('session')->redirect($this->baseURL);
+		}
+
 		// @todo: how to control direct  viewing of a note that a user has no visiblity access to!? By direct access we mean guessing the note id and adding that to the param string ?id=1234! we need to do access control here then and redirect! basically, check if the page has restrictions and if the current user qualifies to view the page! throw in own method so we can reuse!
 
 		//@todo: initial work on going back to where we were on the notes dash before arrive here. Need to make sure to call condition correctly + consider renaming the 'page' param string
@@ -370,6 +386,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$note = $this->note;
 		$modules = $this->wire('modules');
 		$headline = $note->title ? $note->title : $this->_('Add New');
+		$warningNoticeNoVisibilityIDsSet = $this->_('Please note that if nothing is selected here, irrespective of your visibility setting, all notes will be visible to everyone with access to Dashboard Notes!');
 
 
 		if($note->title) {
@@ -556,7 +573,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// @todo: move to function + show if!
 
-		// note visibility: by role
+		// note visibility: by role (2)
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_note_limit_role");
 		$f->attr('value', (2 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
@@ -564,6 +581,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->description = $this->_("Select roles allowed to view this note.");
 		$f->showIf = 'dn_note_visibility_limit=2';
 		$f->requiredIf = 'dn_note_visibility_limit=2';
+		$f->notes = $warningNoticeNoVisibilityIDsSet;
 
 		$roles = $this->getRoles();
 
@@ -571,7 +589,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$fieldset->add($f);
 
-		// note visibility: by permission
+		// note visibility: by permission (3)
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_note_limit_permission");
 		$f->attr('value', (3 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
@@ -579,6 +597,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->description = $this->_("Select permissions allowed to view this note.");
 		$f->showIf = 'dn_note_visibility_limit=3';
 		$f->requiredIf = 'dn_note_visibility_limit=3';
+		$f->notes = $warningNoticeNoVisibilityIDsSet;
 
 		$permissions = $this->getPermissions();
 
@@ -586,7 +605,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$fieldset->add($f);
 
-		// note visibility: by permission
+		// note visibility: by permission (4)
 		$f = $modules->get('InputfieldAsmSelect');
 		$f->attr('name', "dn_note_limit_users");
 		$f->attr('value', (4 == $note->limitVisibility ? $note->limitVisibilityIDs : array()));
@@ -594,6 +613,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->description = $this->_("Select users who can view this note.");
 		$f->showIf = 'dn_note_visibility_limit=4';
 		$f->requiredIf = 'dn_note_visibility_limit=4';
+		$f->notes = $warningNoticeNoVisibilityIDsSet;
 
 		$users = $this->getUsers();
 
@@ -1414,6 +1434,17 @@ class ProcessDashboardNotes extends Process implements Module {
 		$page->save();
 
 		$this->message($this->_('Note saved.'));
+		// if limiting access and no access criteria values selected (i.e. no roles, permissions or users set), warn the user
+		if($noteLimit > 1 && !count($limitIDs)) {
+			$limitVisibilityByText = array(
+				2 => $this->_('Roles'),
+				3=> $this->_('Permissions'),
+				4 => $this->_('Users'),
+			);
+			$limitText = $limitVisibilityByText[$noteLimit];
+			$warning = sprintf(__('You need to specify the %1$s you wish to limit the visibility of this note by (%2$s).'), $limitText, "<em>$page->title</em>");
+			$this->warning($warning, Notice::allowMarkup);
+		}
 
 		/*
 			# determine redirection # @note: we preserve url param strings if possible!
@@ -1494,8 +1525,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
-
-
 	/**
 	 * Save global default notes settings.
 	 *
@@ -1563,10 +1592,19 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		if($notes->count()) {
 			// set extra note properties (priority, etc)
-			$notes->each(function($note) {
+			$notes->each(function($note) use($notes){
 				$noteSettingsJSON = $note->dashboard_notes_settings;
 				$data = json_decode($noteSettingsJSON, true);
 				if(is_array($data) && count($data))$note->setArray($data);
+
+				// @todo: testing access remove here!
+				if($note->limitVisibility > 1) {
+					$access = $this->checkAccess($note);
+					if(!$access) $notes->remove($note);
+				}
+
+
+
 			});
 
 			// sort notes by priority if required (in-memory)
@@ -1690,6 +1728,51 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @note: these note colour properties are  also used for JS config scripts sent to browser
 		$this->noteTextColour = $this->settings->textColour;
 		$this->noteBackgroundColour = $this->settings->backgroundColour;
+
+	}
+
+	/* ######################### - UTILITIES - ######################### */
+
+	/**
+	 * Check if a user has access to view/edit the specified note page.
+	 *
+	 * Access can be limited by role, permissions or users.
+	 * If in dashboard, skip to display such pages.
+	 * If URL to view/edit accessed directly, we will redirect to dashboard (note here!).
+	 *
+	 * @access private
+	 * @return bool $access True if user has access else false
+	 *
+	 */
+	private function checkAccess($note) {
+
+
+		$access = false;
+
+		bd($note->id,'note limit visibility ids');
+
+		// if no limitVisibilityIDs set, just return true @note: on save, users are warned about this!
+		if(!is_array($note->limitVisibilityIDs) || !count($note->limitVisibilityIDs)) return true;
+
+		// check access: roles
+		if(2 == $note->limitVisibility) {
+
+		}
+		// check access: permission
+		elseif(3 == $note->limitVisibility) {
+
+		}
+		// check access: users
+		elseif(4 == $note->limitVisibility) {
+			bd($note->limitVisibilityIDs,'limitVisibilityIDs');
+			// if current logged in user's ID is one of the allowed user ids, access is true
+			if(in_array($this->wire('user')->id,$note->limitVisibilityIDs)) $access = true;
+
+		}
+
+		if(!$access) bd($note->title,'not has no access');
+
+		return $access;
 
 	}
 
