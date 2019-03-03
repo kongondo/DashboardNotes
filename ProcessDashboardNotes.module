@@ -802,7 +802,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('name', 'dn_note_sort');
 		$f->attr('value', $this->settings->sort);
 		$f->label =  $this->_('Display Sort');
-		$f->notes = $this->_('How to sort display of notes. Please note that sorting by priority is experimental. It may not always work as expected.');
+		$f->notes = $this->_('How to sort display of notes. Please note that sorting by priority works only per 1 dashboard page view as opposed to across multiple results. Hence, it may not always work as expected.');
 
 		$radioOptions = array (
 			1 => $this->_('Date'),
@@ -1597,7 +1597,27 @@ class ProcessDashboardNotes extends Process implements Module {
 				$data = json_decode($noteSettingsJSON, true);
 				if(is_array($data) && count($data))$note->setArray($data);
 
-				// @todo: testing access remove here!
+				// check access and remove notes whose visibility are access controlelled and not available to current user
+				/* 
+				@todo! big problem here!
+				
+				- if all notes in results are not accessible to current user and PAGINATION is in use, then all the notes will be removed and user will not be able to view anything! they'll be told to create a new note! It may be the case that there are other notes that the user can view but they won't have access to them since pagination in case described above will not show! 
+				- since we cannot use db selector to search for settings in JSON string (in this case, limitVisibility), we are stuck!
+				- only impasse is to remove pagination so all notes are returned. this is not always practical
+				- another alternative is to see if we can use the feature available in mysql 5.7
+				- think!
+				- another idea is to do, maybe maximum 5 searches, each time we cache failed IDs that result in removal of pages that do not pass accessibility below. 
+				- we then save the current search count (e.g. at count 3) then compare that to what we've set as limit
+				- we also cache the failed IDs so we exclude them from subsequent searches
+				- we stop when we get results or limit counts down.
+				- the problem with above approach is if pagination limit is low, e.g. 1 note per pages, we'll only be able to do 5 searches that will give us 1 page each time 5 times. it may well be that the current user has no access to those first 5 notes! so, we'll fail again.
+				- a modified idea is to place no limit to the search iterations and continue (e.g. beyond 5) until we either run out of pages or get results..this can be expensive on server?
+				- A MODIFIED IDEA IS TO behind the scenes use a big selector limit IN CASES WHERE NOTES DISPLAY SHOW LIMIT/MAX IS LOW!
+				- E.G. IF show limit max is equal to or less than 10, we do a big search, say between 50 - 100 pages.
+				- we THEN DO AN IN-MEMORY CHECK ONCE WE'VE SET NOTE POPERTIES AND THEN REMOVE UNWANTED ITEMS FROM THE NOTES PAGEARRAY, SAVING THEIR IDs to cache, but for display reduce the array by limiting to what is set in max display. however, subsequent draws selectors should use the SUCESS IDs saved? we can then be renewing cache every time we create/delete, etc anote page.
+				- THIS MIGHT WORK; HAVE A THNK!
+
+				*/
 				if($note->limitVisibility > 1) {
 					$access = $this->checkAccess($note);
 					if(!$access) $notes->remove($note);
@@ -1618,15 +1638,19 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Get all roles (minus guest) for selection for note visibility.
+	 * Get all user's roles (minus guest) for selection for note visibility.
 	 *
+	 * @note: we limit these to only the current user's permissions.
+	 * It doesn't make sense to access-control if user will not have access to that role.
+	 * E.g. if they limit by a permission they do not have Or..
+	 * 
 	 * @access private
 	 * @return void
 	 *
 	 */
 	private function getRoles() {
 		$roles = array();
-		foreach($this->wire('roles') as $role) {
+		foreach($this->wire('user')->roles as $role) {
 			if($role->name == 'guest') continue;
 			$roles[$role->id] = $role->name;
 		}
@@ -1634,7 +1658,11 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Get all permissions for selection for note visibility.
+	 * Get all user's permissions for selection for note visibility.
+	 * 
+	 * @note: we limit these to only the current user's permissions.
+	 * It doesn't make sense to access-control if user will not have access to that role.
+	 * E.g. if they limit by a permission they do not have Or..	 
 	 *
 	 * @access private
 	 * @return void
@@ -1642,7 +1670,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function getPermissions() {
 		$permissions = array();
-		foreach($this->wire('permissions') as $permission) {
+		foreach($this->wire('user')->getPermissions() as $permission) {
 			$permissions[$permission->id] = $permission->get("title|name");
 		}
 		return $permissions;
@@ -1746,31 +1774,49 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function checkAccess($note) {
 
-
 		$access = false;
 
-		bd($note->id,'note limit visibility ids');
+		
+		$user = $this->wire('user');
+		$limitIDs = $note->limitVisibilityIDs;
+		$visibility = $note->limitVisibility;
+		bd($limitIDs,'note limit visibility ids');
 
 		// if no limitVisibilityIDs set, just return true @note: on save, users are warned about this!
-		if(!is_array($note->limitVisibilityIDs) || !count($note->limitVisibilityIDs)) return true;
+		if(!is_array($limitIDs) || !count($limitIDs)) return true;
 
 		// check access: roles
-		if(2 == $note->limitVisibility) {
-
+		if(2 == $visibility) {
+			// iterate saved IDs to limit by and check for first hit in user roles then break
+			foreach($limitIDs as $id) {
+				if($user->hasRole($id)) {
+					$access = true;
+					bd($note->title,'USER HAS ROLE: ACCESS TRUE');
+					break;
+				}
+			}
 		}
 		// check access: permission
-		elseif(3 == $note->limitVisibility) {
+		elseif(3 == $visibility) {
+			// iterate saved IDs to limit by and check for first hit in user permissions then break
+			foreach($limitIDs as $id) {
+				if($user->hasPermission($id)) {
+					$access = true;
+					bd($note->title, 'USER HAS PERMISSION: ACCESS TRUE');
+					break;
+				}
+			}
 
 		}
 		// check access: users
-		elseif(4 == $note->limitVisibility) {
-			bd($note->limitVisibilityIDs,'limitVisibilityIDs');
+		elseif(4 == $visibility) {
+			bd($note->title, 'USER IS CURRENT USER: ACCESS TRUE');
 			// if current logged in user's ID is one of the allowed user ids, access is true
-			if(in_array($this->wire('user')->id,$note->limitVisibilityIDs)) $access = true;
+			if(in_array($user->id,$limitIDs)) $access = true;
 
 		}
 
-		if(!$access) bd($note->title,'not has no access');
+		if(!$access) bd($note->title,'note does not have access');
 
 		return $access;
 
