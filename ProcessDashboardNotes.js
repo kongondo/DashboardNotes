@@ -105,9 +105,9 @@ function ProcessDashboardNotes($) {
 			e.stopPropagation();
 		}
 
-		// @todo: need this input#mm_previous_selected_media !
+		// @todo: need this input#dn_previous_selected_note !
 		if ($input.is(":checked")) {
-			var $prevChecked = $('input#mm_previous_selected_media');
+			var $prevChecked = $('input#dn_previous_selected_note');
 			var $prevCheckedID = $prevChecked.val();
 			// shift select @todo: do we really need these?
 			if (e.shiftKey) {
@@ -123,7 +123,7 @@ function ProcessDashboardNotes($) {
 	}
 
 	/**
-	 * Prevent selection of other text when using shift-select media range.
+	 * Prevent selection of other text when using shift-select notes range.
 	 */
 	function preventNormalShiftSelection() {
 		document.getSelection().removeAllRanges();
@@ -145,17 +145,12 @@ function ProcessDashboardNotes($) {
 	 */
 	function initShiftSelectCheckboxes($previousChkboxID, $currentChkbox) {
 
-		//@todo: delete when done!
-		//var $parent = $("div.mm_thumbs:not(.mm_hide)");
 		var $parent = $("div#dn_notes_container");
-		var $mediaThumbChkboxes = $parent.find("input[type='checkbox'].dn_note_check");
-		var $start = $mediaThumbChkboxes.index($currentChkbox);
+		var $notesThumbChkboxes = $parent.find("input[type='checkbox'].dn_note_check");
+		var $start = $notesThumbChkboxes.index($currentChkbox);
 		var $previousChkbox = $parent.find('input#' + $previousChkboxID);
-		var $end = $mediaThumbChkboxes.index($previousChkbox);
-		var $shiftChecked = $mediaThumbChkboxes.slice(Math.min($start, $end), Math.max($start, $end) + 1);
-
-		console.log($shiftChecked,'shift checked');
-		
+		var $end = $notesThumbChkboxes.index($previousChkbox);
+		var $shiftChecked = $notesThumbChkboxes.slice(Math.min($start, $end), Math.max($start, $end) + 1);
 
 		$shiftChecked.each(function () {
 			 // skip start and end (already checked)
@@ -190,7 +185,7 @@ function ProcessDashboardNotes($) {
 	function setSelectedStateOnAllItems($input) {
 		// @note: original function name setDeleteStateOnAllItems
 		var $checked = $input.is(":checked");
-		var $items = parent.find('.gridImages').find('.gridImage__selectbox');
+		var $items = parent.find('.dn_notes_grid').find('.gridImage__selectbox');
 		if ($checked) $items.prop("checked", "checked").change();
 		else $items.removeAttr("checked").change();
 	}
