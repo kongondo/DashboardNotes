@@ -277,7 +277,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// bottom pagination panel @todo!
 		$bottomPaginationPanel = "<div id='bottom_pager'>{$pgOut}</div>";
 
-		$finalMarkup = $topPanel . $topPaginationPanel . $notesMarkup . $bottomPaginationPanel;
+		$finalMarkup = $topPanel . $topPaginationPanel . $notesMarkup . $bottomPaginationPanel . $this->renderShiftSelectMarkup();
 
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $finalMarkup);
@@ -1305,7 +1305,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 */
 	private function renderShiftSelectMarkup() {
-		$out = '<div id="mm_shift_select_wrapper" class="mm_hide"><input id="mm_previous_selected_media" type="hidden" value="0"></div>';
+		$out = '<div id="mm_shift_select_wrapper" class="dn_hide"><input id="dn_previous_selected_note" type="hidden" value="0"></div>';
 		return $out;
 	}
 
