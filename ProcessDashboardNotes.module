@@ -54,7 +54,8 @@ class ProcessDashboardNotes extends Process implements Module {
 	private $urlSeg1;// urlSegment1
 	private $baseURL;// base URL to this module
 	private $dateFormat;// for formatting note dates display
-	private $pageNumStr;// for url with page number string affixed
+	private $pageNumStr;// for storing value of $input->pageNumStr() {pagination/page number}
+	private $pageNumParamStr;// for url with page number param string affixed
 	private $noSettings;// cannot view or save settings
 
 	// @note: properties shared between single note and global settings! [for save of js scripts]
@@ -102,8 +103,12 @@ class ProcessDashboardNotes extends Process implements Module {
 		# page number string
 		// for paginated views leading to note edit or view. we use this to create backlink that leads to where in pagation user was
 		// the param string is 'page' [e.g. &page=page4]
-		$pageNumStr = $sanitizer->fieldName($input->page);
-		$this->pageNumStr = $pageNumStr ? "{$pageNumStr}" : "";
+		$pageNumParamStr = $sanitizer->fieldName($input->page);
+		$this->pageNumParamStr = $pageNumParamStr ? $pageNumParamStr : "";
+
+		// for main dashboard, we use this to store $input->pageNum() so we can redirect properly after bulk action
+		// this will be page3, etc.
+		$this->pageNumStr = $input->pageNumStr();
 
 		// prepare notes global settings @note: calling before setNoteValues()  so not to cancel shared colour properties with single note values!
 		$this->setGlobalNoteValues();
@@ -286,6 +291,13 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$form->add($f);
 
+		// hidden input to store param string for pagination. Helps with redirection after bulk action.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_pagination_num');
+		$f->attr('value', $this->pageNumStr);
+		bd($this->pageNumStr,'page num');
+		$form->add($f);
+
 		// apply (save) button
 		$f = $modules->get('InputfieldSubmit');
 		$f->attr('id+name', 'dn_actions_btn');
@@ -361,7 +373,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}/{$this->pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$this->pageNumParamStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				//"<h2>{$note->title}</h2>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$date} | {$author} | {$note->priority}</div>".
@@ -427,7 +439,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @todo: back to all notes should return you to page where you were!
 		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}/{$this->pageNumStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				"<a href='{$this->baseURL}/{$this->pageNumParamStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$meta}</div>".
 				"</header>" .
@@ -639,7 +651,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// hidden input to store param string for pagination. Helps to set 'back to all notes' link correctly after save so user can head back to the last page (with this note) that they were browsing
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_pagination_num_str');
-		$f->attr('value', $this->pageNumStr);
+		$f->attr('value', $this->pageNumParamStr);
 		$fieldset->add($f);
 
 		$form->add($fieldset);
@@ -1345,7 +1357,6 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @access private
 	 * @param array $post Input Post with new or existing note to save.
-	 * @access private
 	 *
 	 */
 	private function saveNote($post) {
@@ -1539,18 +1550,158 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Save new or edit existing notes.
+	 * Bulk actions for selected notes.
 	 *
+	 * Actions are: lock, unlock, change priority (low/normal/high), trash and delete
 	 * @access private
 	 * @param array $post Input Post with notes to bulk action.
-	 * @access private
 	 *
 	 */
 	private function saveBulkActions($post) {
 
-		bd($post->dn_actions_btn,'dn_actions_btn in bulk actions');
-		bd($post->dn_action_select,'dn_action_select in bulk actions');
-		bd($post->dn_selected_notes,'dn_selected_notes in bulk actions');
+		$sanitizer = $this->wire('sanitizer');
+		$action = $sanitizer->fieldName($post->dn_action_select);
+		$notesIDs = $sanitizer->intArray($post->dn_selected_notes);
+		// hidden input that holds the pagination str in order to preserve for redirection after bulk action
+		$pageNumStr = $sanitizer->pageName($post->dn_note_pagination_num);
+
+		## catch submission errors
+
+		// no notes selected for actioning @note: not really possible since "apply" button only shows in notes selected. But just in case
+		if(!count($notesIDs))  {
+			$this->error($this->_('No notes selected for actioning!'));
+			return;
+		}
+		// no action selected
+		if(!$action)  {
+			$this->error($this->_('No action selected!'));
+			return;
+		}
+
+		$pages = $this->wire('pages');
+		$i = 0;
+		$j = 0;
+		$priorities = array('priority_low' => 1, 'priority_normal' => 2, 'priority_high' => 3);
+
+		foreach($notesIDs as $noteID) {
+
+			## pre-processing checks ##
+			$page = $pages->get($noteID);
+			if(!$page) {
+				$j++;
+				continue;
+			}
+
+			// if note locked for edits and action is not unlocking, skip it
+			if($page->is(Page::statusLocked) && $action !='unlock') {
+				$j++;
+				continue;
+			}
+
+			## apply actions ##
+
+			// lock/unlock
+			if(in_array($action, array('lock','unlock'))) {
+				// unlock note
+				if('unlock' == $action) {
+					$page->removeStatus(Page::statusLocked);
+					$page->save();
+					// confirm successfully unlocked
+					if (!$page->is(Page::statusLocked)) $i++;
+					else $j++;
+				}
+				// lock note
+				else {
+					$page->addStatus(Page::statusLocked);
+					$page->save();
+					// confirm successfully locked
+					if ($page->is(Page::statusLocked)) $i++;
+					else $j++;
+				}
+			}
+			// change priority
+			elseif(in_array($action, array('priority_low','priority_normal','priority_high'))) {
+				$priority = $priorities[$action];
+				$noteSettings = json_decode($page->dashboard_notes_settings, true);
+				// if priority is normal, no need to save it but unset old value,
+				if(2 == $priority && isset($noteSettings['priority'])) unset($noteSettings['priority']);
+				// else set if low or high
+				else $noteSettings['priority'] = $priority;
+				$page->dashboard_notes_settings = wireEncodeJSON($noteSettings);
+				$page->save('dashboard_notes_settings');
+				$i++;
+			}
+
+			// trash/delete
+			elseif(in_array($action,array('trash','delete'))) {
+
+				// if users cannot delete each others notes, skip if current user is not the note author
+				if(($this->settings->deleteOther == 2 && $page->createdUser != $this->wire('user')) || ($page->is(Page::statusLocked))){
+					$j++;
+					continue;
+				}
+				// delete
+				if('delete' == $action) {
+					$page->delete();// delete the page
+					$deletedPage = $pages->find("id=" . $noteID);
+					if(!$deletedPage->id) $i++;// confirm deleted
+					else $j++;// found page but for some reason failed to delete
+
+				}
+				// trash
+				else {
+					$pages->trash($page);// trash the page
+					if($page->is(Page::statusTrash)) $i++;// confirm trashed;
+					else $j++;// found page but for some reason failed to trash
+				}
+
+			}
+
+
+
+
+		}
+
+		## messages ##
+		// success messages
+		$actionTakenArray = array(
+			'success' => array(
+				'lock' => sprintf(_n("Locked %d note .", "Locked %d notes.", $i), $i),
+				'unlock' => sprintf(_n("Unlocked %d note .", "Unlocked %d notes.", $i), $i),
+				'priority_low' => sprintf(_n("Low priority applied to %d note .", "Low priority applied to %d notes.", $i), $i),
+				'priority_normal' => sprintf(_n("Normal priority applied to %d note .", "Normal priority applied to %d notes.", $i), $i),
+				'priority_high' => sprintf(_n("High priority applied to %d note .", "High priority applied to %d notes.", $i), $i),
+				'trash' => sprintf(_n("Trashed %d note.", "Trashed %d notes.", $i), $i),
+				'delete' => sprintf(_n("Deleted %d note.", "Deleted %d notes.", $i), $i),
+			),
+			'fail' => array(
+				'lock' => $this->_("Unable to lock selected notes."),
+				'unlock' => $this->_("Unable to unlock selected notes."),
+				'priority' => $this->_("Unable to change priority of selected notes."),
+				'trash' => $this->_("Unable to trash selected notes"),
+				'delete' => $this->_("Unable to delete selected notes"),
+			)
+		);
+
+		// success
+		if($i > 0) {
+			$this->message($actionTakenArray['success'][$action]);
+
+		}
+		// error
+		else {
+			$failActionString = in_array($action,array('priority_low','priority_normal','priority_high')) ? $actionTakenArray['fail']['priority'] : $actionTakenArray['fail'][$action];
+			$this->error($failActionString);
+		}
+
+		// warnings (locked or cannot delete each other's notes)
+		if($j) {
+			$warningActionString = sprintf(_n("%d note locked for edits or cannot be trashed. No action applied to it.", "%d notes locked for edits or cannot be trashed. No action applied to them.", $j), $j);
+			$this->warning($warningActionString);
+		}
+
+		$pageNumStr = $pageNumStr ? "/{$pageNumStr}" : "";
+		$this->wire('session')->redirect($this->baseURL . "{$pageNumStr}");
 
 
 	}
@@ -2025,7 +2176,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// find and delete the Dashboard Notes permissions and let the user know
 		$perms = array('dashboard-notes','dashboard-notes-settings');
-		$perms = array('dashboard-notes');
 
 		foreach ($perms as $p) {
 			$permission = $this->wire('permissions')->get($p);
