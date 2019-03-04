@@ -1905,7 +1905,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$user = $this->wire('user');
 		$limitIDs = $note->limitVisibilityIDs;
 		$visibility = $note->limitVisibility;
-		bd($limitIDs,'note limit visibility ids');
 
 		// if no limitVisibilityIDs set, just return true @note: on save, users are warned about this!
 		if(!is_array($limitIDs) || !count($limitIDs)) return true;
@@ -1916,7 +1915,6 @@ class ProcessDashboardNotes extends Process implements Module {
 			foreach($limitIDs as $id) {
 				if($user->hasRole($id)) {
 					$access = true;
-					bd($note->title,'USER HAS ROLE: ACCESS TRUE');
 					break;
 				}
 			}
@@ -1927,19 +1925,15 @@ class ProcessDashboardNotes extends Process implements Module {
 			foreach($limitIDs as $id) {
 				if($user->hasPermission($id)) {
 					$access = true;
-					bd($note->title, 'USER HAS PERMISSION: ACCESS TRUE');
 					break;
 				}
 			}
 		}
-		// check access: users
+		// check access: users (but NOT SUPERUSERS!)
 		elseif(4 == $visibility) {
-			bd($note->title, 'USER IS CURRENT USER: ACCESS TRUE');
-			// if current logged in user's ID is one of the allowed user ids, access is true
-			if(in_array($user->id,$limitIDs)) $access = true;
+			// if current logged in user's ID is one of the allowed user ids OR is a superuser, access is true
+			if(in_array($user->id,$limitIDs) || $user->isSuperuser()) $access = true;
 		}
-
-		if(!$access) bd($note->title,'note does not have access');
 
 		return $access;
 
