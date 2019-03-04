@@ -204,26 +204,23 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @todo: make sure pagination numbers still work after removal of some notes due to view access?!!!! otherwise, can create new page array and create from there maybe? or do own totals?
 
 		if($notes->count()) {
-
 			$start = $notes->getStart();
 			$limit = $notes->getLimit();
 			$end = $start+$notes->count();
 			$total = $notes->getTotal();
-
 			$headline = sprintf(__('%1$d to %2$d of %3$d'), $start+1, $end, $total);
-
 			if($total > $limit) {
 				$pager = $this->wire('modules')->get('MarkupPagerNav');
 				#Solution for pagination when using URL segments
 				// get the url segment string.
 				$url = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr;
 				$pgOut = $notes->renderPager(array('baseUrl' => $url));
-				 // specifically identify page1, otherwise link doesn't work: @ryancramer
-				//$pgOut = str_replace($url . "'", $url . "?pageNum=1'", $pgOut);
 			}
-
 		}
-
+		// either no notes for real, or redirected to a page (pagination) where no notes found due to deletion, etc
+		// so redirect to first page
+		elseif(strlen($this->pageNumStr)) $this->wire('session')->redirect($this->baseURL);
+		// no notes for real
 		else $headline = $this->_('No notes found. Add one to get started.');
 
 		###############
@@ -295,7 +292,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_pagination_num');
 		$f->attr('value', $this->pageNumStr);
-		bd($this->pageNumStr,'page num');
 		$form->add($f);
 
 		// apply (save) button
