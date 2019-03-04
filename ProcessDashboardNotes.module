@@ -1084,14 +1084,14 @@ class ProcessDashboardNotes extends Process implements Module {
 
 			if($note->is(Page::statusLocked)){
 				$editURL = '#';
-				$editClass = 'gridImage__locked';
+				$editClass = 'gridNote__locked';
 				$editIcon = "<i class='fa fa-lock'></i>";
 			}
-			// media unlocked and can be edited
+			// note unlocked and can be edited
 			else {
 				$editURL = $this->baseURL . "/edit/?id={$note->id}{$urlParamPageNumStr}";
-				// @todo: change gridImage to gridNote?
-				$editClass = 'gridImage__edit';
+				// @todo: change gridNote to gridNote?
+				$editClass = 'gridNote__edit';
 				$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
 			}
 
@@ -1143,8 +1143,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			// @todo: truncate $note->text + add Read More or View what if no comments?
 			// @todo: edit as required! e.g., do we need li#id?! + the data-attr?
 			$out .=
-				"<li id='note-{$note->id}' class='gridImage ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
-					"<div class='dn_note gridImage__overflow'{$noteWrapperStyles}>" .
+				"<li id='note-{$note->id}' class='gridNote ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
+					"<div class='dn_note gridNote__overflow'{$noteWrapperStyles}>" .
 						"<header class='uk-comment-header'>" .
 							"<h4 class='uk-comment-title uk-margin-remove'{$textColour}>{$note->title}</h4>".
 							"<div class='uk-comment-meta'{$textColour}>{$meta}</div>".
@@ -1155,15 +1155,15 @@ class ProcessDashboardNotes extends Process implements Module {
 							"<span>{$commentsCount}</span>" .
 						"</div>" .
 					"</div>" .
-					"<div class='gridImage__hover'>" .
-						"<div class='gridImage__inner'>" .
-							"<label class='gridImage__icon' for='' data-value='{$note->id}'>" .
-								"<input class='dn_note_check gridImage__selectbox' id='note-{$note->id}' name='dn_selected_notes[]' type='checkbox' value='{$note->id}' data-media='{$note->id}'>" .
+					"<div class='gridNote__hover'>" .
+						"<div class='gridNote__inner'>" .
+							"<label class='gridNote__icon' for='' data-value='{$note->id}'>" .
+								"<input class='dn_note_check gridNote__selectbox' id='note-{$note->id}' name='dn_selected_notes[]' type='checkbox' value='{$note->id}' data-media='{$note->id}'>" .
 								"<span class='dn_select fa fa-check-square-o'></span>" .
 							"</label>" .
-							// @todo: add locked too! i.e. gridImage__locked + edit classes!
+							// @todo: add locked too! i.e. gridNote__locked + edit classes!
 							"<span class='dn_note_view_edit'>" .
-								"<a href='{$viewURL}' class='dn_note_view gridImage__edit'>" . $viewIcon. "</a>" .
+								"<a href='{$viewURL}' class='dn_note_view gridNote__edit'>" . $viewIcon. "</a>" .
 								"<span class='dn_note_view_edit_divider'>&#47;</span>" .
 								"<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>" .
 							"</span>" .
@@ -1295,10 +1295,10 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Render hidden markup to store last selected media ID.
+	 * Render hidden markup to store last selected note ID.
 	 *
 	 * Helps with the JS shift-selecting feature.
-	 * Using shift, users can select all media between a range.
+	 * Using shift, users can select all notes between a range.
 	 *
 	 * @access private
 	 * @return string $out. Markup for shift-selection.
