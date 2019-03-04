@@ -4,7 +4,7 @@
         "flags": 0,
         "name": "dashboard_note",
         "label": "Dashboard Note",
-        "description": "Stores Note items for Dashboard Notes",
+        "description": "Stores Note responses/comments for Dashboard Notes",
         "moderate": 0,
         "useNotify": 0,
         "deleteSpamDays": 3,
