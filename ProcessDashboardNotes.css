@@ -5,7 +5,7 @@
  * @author Francis Otieno (Kongondo) <kongondo@gmail.com>
  *
  * https://github.com/kongondo/DashboardNotes
- * Created February 2019
+ * Created February 2019.
  *
  */
 
@@ -26,9 +26,7 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
  div#dn_notes_container {clear: both;}
  div#bottom_pager {margin: 1.25em 0;  height: 3.125em;}
  div#dn_create_new_note {margin-top: 20px !important;}
-
-
- div.gridImage__overflow {
+ div.gridNote__overflow {
      width: 100%;
      height: 100%;
      overflow: hidden;
@@ -38,7 +36,7 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
      /* @todo: padding? */
  }
 
- div.gridImage__hover {
+ div.gridNote__hover {
      position: absolute;
      top: 0;
      left: 0;
@@ -47,13 +45,14 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
      padding: 0.4em;
  }
 
- div.gridImage__inner {position: relative; width: 100%; height: 100%;}
+ div.gridNote__inner {position: relative; width: 100%; height: 100%;}
  div.mm_actions_wrapper, div#top_pager {width: 100%;}
  div.dn_note_footer {padding-right: 10px;}
-
  div#dn_note_responses {max-width: 50%; margin-top: 30px;}
-
  div#dn_note_text {font-size: 1.25em; padding-bottom: 25px; border-bottom: 1px solid #e5e8ec;}
+ /* @note: we need this to see the button if colour is very pale/light [for pickr colour picker]*/
+
+div.pcr-button {/* border: 1px solid #d9e1ea;*/outline: #d9e1ea 1px solid;}
 
  /** span **/
 span.dn_note_view_edit {
@@ -64,8 +63,7 @@ span.dn_note_view_edit {
     top: 35%;/* @kongondo for DN */
 }
 
-.gridImage:hover span.dn_note_view_edit {display: block; }
-
+.gridNote:hover span.dn_note_view_edit {display: block; }
 span.dn_note_view_edit_divider {
     display: inline-block;
     margin-right: 10px;
@@ -76,7 +74,6 @@ span.dn_note_view_edit_divider {
 }
 
 span.dn_note_priority_meta {font-weight: bolder;}
-
 span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3px;}
 
  /** form **/
@@ -84,17 +81,14 @@ span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3
 
  /** input **/
  select#dn_action_select, label#dn_action_select_label {float: right;}
- .gridImage__icon > input {display: none;}
+ .gridNote__icon > input {display: none;}
 
- select#dn_action_select {
-     /* margin-right: 0.75em; */
-     width: 150px;
- }
+ select#dn_action_select {/* margin-right: 0.75em; */ width: 150px; }
 
  /** label **/
  label#dn_action_select_label {/* margin-left: 1em;  */margin-right: 0.25em; display: inline-block; vertical-align: top;}
- label.gridImage__icon {display: none;}
- .gridImage:hover label.gridImage__icon:hover {display: block; color: #e83561; background-color: white;}
+ label.gridNote__icon {display: none;}
+ .gridNote:hover label.gridNote__icon:hover {display: block; color: #e83561; background-color: white;}
 
 
 
@@ -119,23 +113,22 @@ span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3
      list-style: none;
  }
 
- li.gridImage {
+ li.gridNote {
      display: inline-block;
      margin: 0 0.6em 0.6em 0;
      box-shadow: none; border: 1px solid #d9e1ea;
      list-style: none;
  }
- .gridImage {
+ .gridNote {
      position: relative;
      border-radius: 2px;
      background: #fff;
      padding: 0.4em;
      vertical-align: top;
+     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
  }
- /* @todo: combine with above */
- .gridImage {box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);}
 
- .gridImage__icon {
+ .gridNote__icon {
      position: absolute;
      background: white;
      padding: .2em .6em;
@@ -143,24 +136,24 @@ span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3
      z-index: 2;
      cursor: pointer;
  }
- .gridImage__edit:hover {color: white; }
- .gridImage:hover .gridImage__inner {background: rgba(62, 185, 152, 0.7);}
+ .gridNote__edit:hover {color: white; }
+ .gridNote:hover .gridNote__inner {background: rgba(62, 185, 152, 0.7);}
 
- .gridImage__icon--single {display: block !important; position: static;}/*  @todo: needed? */
- .gridImage:hover .gridImage__icon {display: block;}
- .gridImage--select {background-color: #e83561 !important;}
- .gridImage--select .gridImage__icon {background-color: #e83561; color: white; display: block;}
- .gridImage--select .gridImage__icon:hover {background-color: #e83561;}
- .gridImage--select:hover .gridImage__edit, .gridImage--select:hover .gridImage__locked, .gridImage--select:hover .dn_note_view_edit_divider {
+ .gridNote__icon--single {display: block !important; position: static;}/*  @todo: needed? */
+ .gridNote:hover .gridNote__icon {display: block;}
+ .gridNote--select {background-color: #e83561 !important;}
+ .gridNote--select .gridNote__icon {background-color: #e83561; color: white; display: block;}
+ .gridNote--select .gridNote__icon:hover {background-color: #e83561;}
+ .gridNote--select:hover .gridNote__edit, .gridNote--select:hover .gridNote__locked, .gridNote--select:hover .dn_note_view_edit_divider {
      display: none;
     }
 
- .gridImage--select:hover .gridImage__icon:hover {background-color: #e83561;}
- .gridImage--select:hover .gridImage__inner {background: rgba(232, 53, 97, 0.3);}
+ .gridNote--select:hover .gridNote__icon:hover {background-color: #e83561;}
+ .gridNote--select:hover .gridNote__inner {background: rgba(232, 53, 97, 0.3);}
 /* @todo: experimental */
-/* li.gridImage.dn_low_priority {border: 1px solid orange;}
-li.gridImage.dn_normal_priority {border: 1px solid green;}
-li.gridImage.dn_high_priority {border: 1px solid red;} */
+/* li.gridNote.dn_low_priority {border: 1px solid orange;}
+li.gridNote.dn_normal_priority {border: 1px solid green;}
+li.gridNote.dn_high_priority {border: 1px solid red;} */
 
 /** article **/
 div#dn_note_responses ul.dn_threaded_comments article.uk-comment {background-color:#1c2836; background-color: rgba(237, 241, 247, 0.5);padding:20px; border-radius: 10px; /* color:white; */}
@@ -169,19 +162,18 @@ div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; paddi
  /** anchor **/
  div#dn_menu ul li a:first-child {padding-left: 0;}
  div#dn_menu a.dn_on {color: #354b60;font-weight: bold;}
- a.gridImage__edit, a.gridImage__locked {
+ a.gridNote__edit, a.gridNote__locked {
     display: inline-block;
     color: white !important;
     font-size: 1.3em;
     cursor: move;
     text-shadow: 0px 0px 7px rgba(62, 185, 152, 0.7);
 }
- div.gridImage__inner a.gridImage__locked {font-size: 1.9em; cursor: not-allowed;}
- a.gridImage__edit {cursor: pointer;}
+ div.gridNote__inner a.gridNote__locked {font-size: 1.9em; cursor: not-allowed;}
+ a.gridNote__edit {cursor: pointer;}
  /* @note: we've moved this to the span */
- /* .gridImage:hover .gridImage__edit, .gridImage:hover .gridImage__locked {display: block; } */
- a.gridImage__locked {vertical-align: sub;}
-
+ /* .gridNote:hover .gridNote__edit, .gridNote:hover .gridNote__locked {display: block; } */
+ a.gridNote__locked {vertical-align: sub;}
  a.dn_create_note, a.dn_back_to_all_notes {display: block; margin-bottom: 30px !important;}
 
  /** i **/

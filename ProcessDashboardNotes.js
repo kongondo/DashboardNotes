@@ -1,11 +1,11 @@
 /**
  *
- * Javascript file for PW Module ProcessDashboardNotes
+ * Javascript file for PW Module ProcessDashboardNotes.
  *
  * @author Francis Otieno (Kongondo) <kongondo@gmail.com>
  *
  * https://github.com/kongondo/ProcessDashboardNotes
- * Created March 2015, major update December 2017
+ * Created February 2019.
  *
  */
 
@@ -73,9 +73,9 @@ function ProcessDashboardNotes($) {
 	 */
 	function updateSelectClass($checkbox) {
 		if($checkbox.is(":checked")) {
-			$checkbox.parents('.dn_note').addClass("gridImage--select");
+			$checkbox.parents('.dn_note').addClass("gridNote--select");
 		} else {
-			$checkbox.parents('.dn_note').removeClass("gridImage--select");
+			$checkbox.parents('.dn_note').removeClass("gridNote--select");
 		}
 	}
 
@@ -92,8 +92,6 @@ function ProcessDashboardNotes($) {
 	 */
 	function notesSelection($selected, e) {
 
-		// @todo: change name!
-
 		parent = $selected.parents('div#dn_notes_container');
 		var $label = $selected.parent('label');
 		var $input = $label.find("input");
@@ -105,7 +103,6 @@ function ProcessDashboardNotes($) {
 			e.stopPropagation();
 		}
 
-		// @todo: need this input#dn_previous_selected_note !
 		if ($input.is(":checked")) {
 			var $prevChecked = $('input#dn_previous_selected_note');
 			var $prevCheckedID = $prevChecked.val();
@@ -185,7 +182,7 @@ function ProcessDashboardNotes($) {
 	function setSelectedStateOnAllItems($input) {
 		// @note: original function name setDeleteStateOnAllItems
 		var $checked = $input.is(":checked");
-		var $items = parent.find('.dn_notes_grid').find('.gridImage__selectbox');
+		var $items = parent.find('.dn_notes_grid').find('.gridNote__selectbox');
 		if ($checked) $items.prop("checked", "checked").change();
 		else $items.removeAttr("checked").change();
 	}
@@ -193,11 +190,9 @@ function ProcessDashboardNotes($) {
 	/**
 	 * Initialise Pickr.
 	 *
-	 * @param string $el String to select the element which will be replaced with the actual color-picker.
-	 * @param string $i String to select the hidden element where we will save the selected colour.
+	 * @param object $targetElement Element which will be replaced with the actual color-picker.
 	 *
 	 */
-	//function initColourPicker($targetElement, $colourValueElement) {// @todo; delete when done
 	function initColourPicker($targetElement) {
 
 		if (jsDashboardNotesConfigs) {
@@ -238,7 +233,7 @@ function ProcessDashboardNotes($) {
 					save: true
 				},
 			},
-			// @todo: future update; make configurable?
+			// @todo: make configurable in future??
 			swatches: [
 				'#F44336',
 				'#E91E63',
@@ -256,7 +251,7 @@ function ProcessDashboardNotes($) {
 				'#FFC107'
 			],
 
-			// Translated Button strings // @todo; get from module config!
+			// Translated Button labels strings
 			strings: {
 				save: colourPickerSave,  // save button
 				clear: colourPickerClear // clear button
@@ -290,39 +285,31 @@ function ProcessDashboardNotes($) {
 	 */
 	function init() {
 
-
 		// initialise colour pickers (for background and text colours)
 		if (typeof Pickr !== 'undefined') {
 			$('div.dn_colour_picker').each(function(){
-				/*var $elementID = "#" + $(this).attr('id');
-				var $colourValueElementID = "#" + $(this).attr('data-colour');
-				initColourPicker($elementID, $colourValueElementID)*/
-				//var $elementID = "#" + $(this).attr('id');
 				var $targetElement = $(this);
 				initColourPicker($targetElement)
 			});
 		}
 
-		// @todo: refresh parent page on modal (add/edit note) close
-
 		// change of "delete/selected" status for an item event
-		$(document).on("change", ".gridImage__selectbox", function () {
+		$(document).on("change", ".gridNote__selectbox", function () {
 			console.log('checkbox changed');
 			updateSelectClass($(this));
-			// @todo: needed? if not delete. if yes, add parent above!
+			// all notes parent wrapper
 			parent = $(this).parents('div#dn_notes_container');
 			showHideActionsPanel();
 		});
 
 		// click or double click select/trash event
-		// @note: was 'gridImage__trash' in original
-		//$(document).on('click dblclick', '.gridImage__icon', function (e) {
+		// @note: was 'gridNote__trash' in original
+		//$(document).on('click dblclick', '.gridNote__icon', function (e) {
 		$(document).on('click dblclick', '.dn_select', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
 			notesSelection($(this),e);
 		});
-
 
 	}
 
