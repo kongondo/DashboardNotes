@@ -55,6 +55,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	private $baseURL;// base URL to this module
 	private $dateFormat;// for formatting note dates display
 	private $pageNumStr;// for url with page number string affixed
+	private $noSettings;// cannot view or save settings
 
 	// @note: properties shared between single note and global settings! [for save of js scripts]
 	private $noteTextColour;// notes background colour
@@ -82,14 +83,17 @@ class ProcessDashboardNotes extends Process implements Module {
 		} */
 
 		$user = $this->wire('user');
+		$permissions = $this->wire('permissions');
 
-		$this->settings = new WireData();
-
-		$user = $this->wire('user');
-		$this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
-
-		if ($this->wire('permissions')->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
+		if ($permissions->get('dashboard-notes')->id && !$user->hasPermission('dashboard-notes'))
 			 throw new WirePermissionException("You have no permission to use this module");
+
+			 // check if user has permission to view and save settings
+		$this->noSettings = $permissions->get('dashboard-notes-settings')->id && !$user->hasPermission('dashboard-notes-settings') ? true : false;
+
+		// init class properties
+		$this->settings = new WireData();
+		$this->baseURL = $this->wire('config')->urls->admin . "dashboard-notes";
 
 		$input = $this->wire('input');
 		$sanitizer = $this->wire('sanitizer');
@@ -233,13 +237,24 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->addOptions($actions);
 		//$actions = $f->render() . $label;
 		$actions = $f->render();
-		//$f->label = "testing";// @todo?
-		//$form->add($f);
+
+
+		// @note: our menu has two items only: "Notes" and "Settings". if user can see and edit settings, we show the menu
+		if(!$this->noSettings) {
+			$menu = "<div class='uk-width-expand uk-first-column'>" .$this->renderMenu() .	"</div>";
+			$menuActionsClass = " uk-width-1-3@s";
+		}
+		// else, no need to have a one item menu
+		else {
+			$menu = "";
+			$menuActionsClass = " uk-width-1-1@s";
+		}
+
 		$topPanel =
 			"<div id='mm_top_panel' class='mm_top_panel'>" .
 				"<div id='mm_menu_actions_wrapper' uk-grid class='uk-grid'>" .
-					"<div class='uk-width-expand uk-first-column'>" .$this->renderMenu() .	"</div>" .
-					"<div id='mm_actions' class='mm_actions uk-width-1-3@s'>" .
+					$menu .
+					"<div id='mm_actions' class='mm_actions{$menuActionsClass}'>" .
 						$actions .
 						"<label id='dn_action_select_label' for='dn_action_select'>" . $this->_('Action') . "</label>" .
 					"</div>" .
@@ -303,13 +318,12 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$note = $this->note;
 
-		// @access-control: user has no visibility acces to this note
+		// @access-control: user has no visibility access to this note
 		if(!$this->checkAccess($this->note)) {
 			// @todo: testing, delete error? but redirect!
 			$this->error($this->_('You have no access to this note!'));
 			$this->wire('session')->redirect($this->baseURL);
 		}
-
 
 		$out = '';
 		$replyForm = '';
@@ -371,7 +385,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeEdit() {
 
-		// @access-control: user has no visibility acces to this note
+		// @access-control: user has no visibility access to this note
 		if(!$this->checkAccess($this->note)) {
 			// @todo: testing, delete error? but redirect!
 			$this->error($this->_('You have no access to this note!'));
@@ -467,7 +481,8 @@ class ProcessDashboardNotes extends Process implements Module {
 		$fieldset = $modules->get('InputfieldFieldset');
 		$fieldset->attr('id', 'dn_note_settings');
 		$fieldset->label = $this->_('Settings');
-		$fieldset->collapsed = Inputfield::collapsedYes;
+		// for new notes, do not collapse settings
+		if($note->title) $fieldset->collapsed = Inputfield::collapsedYes;
 
 		/* ## note priority ## */
 		$f = $modules->get('InputfieldRadios');
@@ -708,6 +723,12 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// @todo: add setting to select field to show note author name rather than user name?
 		// @todo: what about setting to show author image?
+
+		// @access-control: user has not allowed to view or edit global note settings
+		if($this->noSettings) {
+			//$this->error($this->_('You have no access to global note settings!')); //@todo?
+			$this->wire('session')->redirect($this->baseURL);
+		}
 
 		$out = '';
 
@@ -1108,6 +1129,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			$date = date($this->dateFormat, $note->created);
 			// @todo; configurable field to get author name!
 			$author = $note->createdUser->name;
+			// if note priority not set, it means note is "normal" so priority "2" set at runtime
+			if(!$note->priority) $note->priority = 2;
 			$notePriority = $priorities[$note->priority];
 			//fa-comments, fa-comments-o, fa-comment, fa-comment-o
 			$commentsCount = "<span class='fa fa-comments-o'><span class='dn_note_comments_count'>{$note->dashboard_note->count()}</span></span> ";
@@ -1293,7 +1316,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	/**
 	 * Processes ProcessDashboardNotes form inputs (CRUD).
 	 *
-	 * CRUD - Processes all the form input sent from execute() and executeEdit().
+	 * CRUD - Processes all the form input sent from execute(), executeEdit() and executeView() (response forms).
 	 *
 	 * @access private
 	 * @param object $form Sent form values.
@@ -1355,19 +1378,31 @@ class ProcessDashboardNotes extends Process implements Module {
 		// settings
 		$settingsArray = array();
 		$settingsArray['text'] = $noteText;
-		$settingsArray['priority'] = (int) $post->dn_note_priority;
+		// only save note priority if either low (1) or high (3). Otherwise, we'll default to normal (1) at runtime
+		$notePriority = (int) $post->dn_note_priority;
+		if(2 != $notePriority) $settingsArray['priority'] = $notePriority;
 
 		$settingsArray['textColour'] = str_replace(array("rgba(", ")"), "", $post->dn_note_text_colour);
 		$settingsArray['backgroundColour'] = str_replace(array("rgba(", ")"), "", $post->dn_note_background_colour);
-		$settingsArray['reply'] = (int) $post->dn_note_allow_replies;
-		$noteLimit = (int) $post->dn_note_visibility_limit;
-		$settingsArray['limitVisibility'] = $noteLimit;
-		$limitIDs = array();
 
-		if(2 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_role);
-		elseif(3 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_permission);
-		elseif(4 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_users);
-		$settingsArray['limitVisibilityIDs'] = $limitIDs;
+		// only save note reply setting if no replies allowed (2) Otherwise, we'll default to replies allowedl (1) at runtime
+		$noteReply = (int) $post->dn_note_allow_replies;
+		if(2 == $noteReply) $settingsArray['reply'] = $noteReply;
+
+		// visibility access
+		$noteLimit = (int) $post->dn_note_visibility_limit;
+		$limitIDs = array();
+		// only save limitVisibility if there is access control. Otherwise, we'll use default (1) (all can view all notes) at runtime
+		if($noteLimit > 1) {
+			$settingsArray['limitVisibility'] = $noteLimit;
+			// limit by role
+			if(2 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_role);
+			// limit by permission
+			elseif(3 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_permission);
+			// limit by user
+			elseif(4 == $noteLimit) $limitIDs = $sanitizer->intArray($post->dn_note_limit_users);
+			$settingsArray['limitVisibilityIDs'] = $limitIDs;
+		}
 
 		// new note
 		if(!$notePageID ) {
@@ -1433,6 +1468,18 @@ class ProcessDashboardNotes extends Process implements Module {
 		$page->dashboard_notes_settings = $settingsJSON;
 		$page->save();
 
+		// if note has limited visibility, we cache its ID and limitVisibilityIDs. this is for skipping this note from the selector to find notes to prevent users without access from viewing the note
+		$savedCache = $this->getVisibilityLimitedNotesCache();
+		if($noteLimit > 1 && count($limitIDs)) {
+			$savedCache[$page->id] = $limitIDs;
+			$this->setVisibilityLimitedNotesCache($savedCache);
+		}
+		// else we remove it from cache just in case  visibility access was changed to 'all can view'
+		elseif(isset($savedCache[$page->id])) {
+			unset($savedCache[$page->id]);
+			$this->setVisibilityLimitedNotesCache($savedCache);
+		}
+
 		$this->message($this->_('Note saved.'));
 		// if limiting access and no access criteria values selected (i.e. no roles, permissions or users set), warn the user
 		if($noteLimit > 1 && !count($limitIDs)) {
@@ -1495,7 +1542,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Save new or edit existing notes.
 	 *
 	 * @access private
-	 * @param array $post Input Post with new or existing note to save.
+	 * @param array $post Input Post with notes to bulk action.
 	 * @access private
 	 *
 	 */
@@ -1579,16 +1626,25 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function getNotes() {
 
-		// @todo: work on visibility limits,sort,etc
-		// @todo: @note: visibility can only be done at runtime/in-memory! this is because we have to get the notes first in order to see their settings!
-
 		$limit = (int) $this->settings->displayMax;
 
 		$sorting = array(1=>"created",2=>"title",3=>"priority");
 		$sort = $sorting[(int)$this->settings->sort];
 		if(2 == $this->settings->sortDir) $sort = "-{$sort}";
 
-		$notes = $this->wire('pages')->find("template=dashboard-note,include=all,parent!=7,limit={$limit},sort=$sort");
+		// selector for finding notes
+		$selector = "template=dashboard-note,include=all,parent!=7,limit={$limit},sort=$sort";
+		/*
+			- for non-superusers only...
+			- check if we have visibility limited notes that current user cannot view
+			- if true we exclude them using IDs
+		*/
+		if(!$this->wire('user')->isSuperuser()) {
+			$excludedIDs = $this->getVisibilityLimitedNotesIDs();
+			if(strlen($excludedIDs)) $selector .= ",id!={$excludedIDs}";
+		}
+
+		$notes = $this->wire('pages')->find($selector);
 
 		if($notes->count()) {
 			// set extra note properties (priority, etc)
@@ -1596,44 +1652,99 @@ class ProcessDashboardNotes extends Process implements Module {
 				$noteSettingsJSON = $note->dashboard_notes_settings;
 				$data = json_decode($noteSettingsJSON, true);
 				if(is_array($data) && count($data))$note->setArray($data);
-
-				// check access and remove notes whose visibility are access controlelled and not available to current user
-				/* 
-				@todo! big problem here!
-				
-				- if all notes in results are not accessible to current user and PAGINATION is in use, then all the notes will be removed and user will not be able to view anything! they'll be told to create a new note! It may be the case that there are other notes that the user can view but they won't have access to them since pagination in case described above will not show! 
-				- since we cannot use db selector to search for settings in JSON string (in this case, limitVisibility), we are stuck!
-				- only impasse is to remove pagination so all notes are returned. this is not always practical
-				- another alternative is to see if we can use the feature available in mysql 5.7
-				- think!
-				- another idea is to do, maybe maximum 5 searches, each time we cache failed IDs that result in removal of pages that do not pass accessibility below. 
-				- we then save the current search count (e.g. at count 3) then compare that to what we've set as limit
-				- we also cache the failed IDs so we exclude them from subsequent searches
-				- we stop when we get results or limit counts down.
-				- the problem with above approach is if pagination limit is low, e.g. 1 note per pages, we'll only be able to do 5 searches that will give us 1 page each time 5 times. it may well be that the current user has no access to those first 5 notes! so, we'll fail again.
-				- a modified idea is to place no limit to the search iterations and continue (e.g. beyond 5) until we either run out of pages or get results..this can be expensive on server?
-				- A MODIFIED IDEA IS TO behind the scenes use a big selector limit IN CASES WHERE NOTES DISPLAY SHOW LIMIT/MAX IS LOW!
-				- E.G. IF show limit max is equal to or less than 10, we do a big search, say between 50 - 100 pages.
-				- we THEN DO AN IN-MEMORY CHECK ONCE WE'VE SET NOTE POPERTIES AND THEN REMOVE UNWANTED ITEMS FROM THE NOTES PAGEARRAY, SAVING THEIR IDs to cache, but for display reduce the array by limiting to what is set in max display. however, subsequent draws selectors should use the SUCESS IDs saved? we can then be renewing cache every time we create/delete, etc anote page.
-				- THIS MIGHT WORK; HAVE A THNK!
-
-				*/
-				if($note->limitVisibility > 1) {
-					$access = $this->checkAccess($note);
-					if(!$access) $notes->remove($note);
-				}
-
-
-
 			});
 
 			// sort notes by priority if required (in-memory)
 			if($this->settings->sort == 3) $notes->sort("{$sort}");
 		}
 
-
-
 		return $notes;
+
+	}
+
+	/**
+	 * Fetch cached data for notes whose visibility is limited.
+	 *
+	 * Only notes whose visibity is limited (value>2) are cached.
+	 * We use this to exclude from the dashboard notes that the current user is not allowed to see.
+	 * We use the IDs of the notes in the selector to get notes. @see getNotes()
+	 *
+	 * @access private
+	 * @return array $cacheData Array of notes pages IDs that will be excluded from find notes selector.
+	 *
+	 */
+	private function getVisibilityLimitedNotesCache() {
+		$cacheName = 'dashboard-notes';
+		$cacheData = $this->wire('cache')->get($cacheName);
+		$cacheData = is_array($cacheData) ? $cacheData : array();
+		return $cacheData;
+	}
+
+	/**
+	 * Get IDs of note pages that the current user has no visibility access to.
+	 *
+	 * We use this to exclude from the dashboard notes that the current user is not allowed to see.
+	 * We use the IDs of the notes in the selector to get notes. @see getNotes()
+	 *
+	 * @access private
+	 * @return string $excludedIDsStr If exclusions found, pipe-separated string of page IDs of notes user cannot view, else empty.
+	 *
+	 */
+	private function getVisibilityLimitedNotesIDs() {
+		$excludedIDsStr = "";
+		$excludedIDsCache = $this->getVisibilityLimitedNotesCache();
+		// get array of current user's ID, roles IDs and permission IDs
+		$userIDs = $this->getUserIDs();
+		bd($userIDs, 'USER IDS of user, roles and permissions');
+		if(is_array($excludedIDsCache) && count($excludedIDsCache)) {
+			$excludedIDs = array();
+			foreach ($excludedIDsCache as $pageID => $limitIDs) {
+				// @todo: delete when done
+				bd(array_intersect($userIDs, $limitIDs),'INTERSECTION OF USERIDS AND LIMITIDS');
+				// user has access, so skip @note: this works because users, roles and permissions are all pages, hence have unique page IDs
+				if(count(array_intersect($userIDs, $limitIDs))) continue;
+				// array of pageIDs of notes user cannot view
+				$excludedIDs[] = $pageID;
+			}
+
+			// @todo: delete when done
+			bd($excludedIDs,'Excluded IDs array');
+
+			if(count($excludedIDs)) $excludedIDsStr = implode("|",$excludedIDs);
+			// @todo: delete when done
+			bd($excludedIDsStr,'Excluded IDs String');
+
+		}
+
+		return $excludedIDsStr;
+	}
+
+	/**
+	 * Get IDs of current users ID, roles and permissions.
+	 *
+	 * Uses in conjunction with getVisibilityLimitedNotesIDs() to determine IDs of pages of notes that the user does not have access to.
+	 *
+	 * @access private
+	 * @return array $userIDs Array of IDs of current users IDs, roles and permissions.
+	 *
+	 */
+	private function getUserIDs() {
+
+		$user = $this->wire('user');
+		$userIDs = array();
+
+		// for user limited notes
+		$userIDs[] = $user->id;
+		// for role limited notes
+		foreach($user->roles as $role) {
+			if($role->name == 'guest') continue;
+			$userRoles[] = $role->id;
+		}
+		// for permission limited notes
+		$userPermissions = $user->getPermissions()->explode('id');
+		$userIDs = array_merge($userIDs, $userRoles, $userPermissions);
+
+		return $userIDs;
 
 	}
 
@@ -1643,7 +1754,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @note: we limit these to only the current user's permissions.
 	 * It doesn't make sense to access-control if user will not have access to that role.
 	 * E.g. if they limit by a permission they do not have Or..
-	 * 
+	 *
 	 * @access private
 	 * @return void
 	 *
@@ -1659,10 +1770,10 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	/**
 	 * Get all user's permissions for selection for note visibility.
-	 * 
+	 *
 	 * @note: we limit these to only the current user's permissions.
 	 * It doesn't make sense to access-control if user will not have access to that role.
-	 * E.g. if they limit by a permission they do not have Or..	 
+	 * E.g. if they limit by a permission they do not have Or..
 	 *
 	 * @access private
 	 * @return void
@@ -1677,16 +1788,17 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Get all users (minus guests) for selection for note visibility.
+	 * Get all users (minus guest user) for selection for note visibility.
 	 *
 	 * @access private
 	 * @return void
 	 *
 	 */
 	private function getUsers() {
+		// @todo: should non-superusers be able to see superusers names in this list? I don't think so?! or?
 		$users = array();
 		foreach($this->wire('users') as $user) {
-			if(!$user->hasRole('superuser') && $user->hasRole('guest')) continue;
+			if($user->name == 'guest') continue;
 			$users[$user->id] = $user->name;
 		}
 		return $users;
@@ -1759,6 +1871,20 @@ class ProcessDashboardNotes extends Process implements Module {
 
 	}
 
+	/**
+	 * Create cache of notes whose visibility is limited.
+	 *
+	 * This is for use with saveNote().
+	 *
+	 * @access private
+	 * @param array $items Array of $note->id => $note->limitVisibilityIDs pairs to cache.
+	 *
+	 */
+	private function setVisibilityLimitedNotesCache($items) {
+		$cacheName = 'dashboard-notes';
+		$this->wire('cache')->save($cacheName, $items, WireCache::expireNever);
+	}
+
 	/* ######################### - UTILITIES - ######################### */
 
 	/**
@@ -1776,7 +1902,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$access = false;
 
-		
 		$user = $this->wire('user');
 		$limitIDs = $note->limitVisibilityIDs;
 		$visibility = $note->limitVisibility;
@@ -1806,14 +1931,12 @@ class ProcessDashboardNotes extends Process implements Module {
 					break;
 				}
 			}
-
 		}
 		// check access: users
 		elseif(4 == $visibility) {
 			bd($note->title, 'USER IS CURRENT USER: ACCESS TRUE');
 			// if current logged in user's ID is one of the allowed user ids, access is true
 			if(in_array($user->id,$limitIDs)) $access = true;
-
 		}
 
 		if(!$access) bd($note->title,'note does not have access');
@@ -1860,8 +1983,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// create the permission 'dashboard-notes' and 'dashboard-notes-settings' to limit access to the module
 		$perms = array(
 			'dashboard-notes' => $this->_('Use Dashboard Notes'),
-			// @todo?
-			//'dashboard-notes-settings' => $this->_('Edit Dashboard Notes Settings'),
+			'dashboard-notes-settings' => $this->_('View and Edit Dashboard Notes Settings'),
 		);
 
 		foreach ($perms as $k => $v) {
@@ -1875,8 +1997,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		// tell the user we created this module's permissions
-		//$this->message('Dashboard Notes: Created new permissions dashboard-notes and dashboard-notes-settings.');
-		$this->message('Dashboard Notes: Created new permission dashboard-notes.');
+		$this->message('Dashboard Notes: Created new permissions dashboard-notes and dashboard-notes-settings.');
 
 	}
 
@@ -1909,8 +2030,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		// find and delete the Dashboard Notes permissions and let the user know
-		// @note: @todo: currently using only 1 permission!
-		//$perms = array('dashboard-notes','dashboard-notes-settings');
+		$perms = array('dashboard-notes','dashboard-notes-settings');
 		$perms = array('dashboard-notes');
 
 		foreach ($perms as $p) {
@@ -1919,9 +2039,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		// tell the user we created this module's permission
-		// @note: @todo: currently using only 1 permission!
-		//$this->message('Dashboard Notes: Deleted permissions dashboard-notes and dashboard-notes-settings.');
-		$this->message('Dashboard Notes: Deleted permission dashboard-notes.');
+		$this->message('Dashboard Notes: Deleted permissions dashboard-notes and dashboard-notes-settings.');
 
 		#############
 
