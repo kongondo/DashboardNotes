@@ -311,6 +311,16 @@ function ProcessDashboardNotes($) {
 			notesSelection($(this),e);
 		});
 
+		$('ul#dn_threaded_comments_main').on('click', 'a.dn_note_comment_action_reply', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			var $commentParentID = $(this).attr('data-comment-id');
+			console.log($commentParentID,'parent id of this reply');
+			
+		});
+
+
+
 	}
 
 	// initialise script
