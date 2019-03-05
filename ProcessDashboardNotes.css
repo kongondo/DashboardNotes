@@ -48,10 +48,9 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
  div.gridNote__inner {position: relative; width: 100%; height: 100%;}
  div.mm_actions_wrapper, div#top_pager {width: 100%;}
  div.dn_note_footer {padding-right: 10px;}
- div#dn_note_responses {max-width: 50%; margin-top: 30px;}
- div#dn_note_text {font-size: 1.25em; padding-bottom: 25px; border-bottom: 1px solid #e5e8ec;}
+ div#dn_note_responses {margin-top: 30px;}
+ div#dn_note_text {font-size: 1.25em; padding-bottom: 25px;}
  /* @note: we need this to see the button if colour is very pale/light [for pickr colour picker]*/
-
 div.pcr-button {/* border: 1px solid #d9e1ea;*/outline: #d9e1ea 1px solid;}
 
  /** span **/
@@ -64,7 +63,7 @@ span.dn_note_view_edit {
 }
 
 .gridNote:hover span.dn_note_view_edit {display: block; }
-span.dn_note_view_edit_divider {
+span.dn_note_view_edit_divider, span.dn_note_back_edit_divider, span.dn_note_back_view_divider {
     display: inline-block;
     margin-right: 10px;
     margin-left: 10px;
@@ -72,6 +71,8 @@ span.dn_note_view_edit_divider {
     color: white;
     font-size: 1.5em;
 }
+
+span.dn_note_back_edit_divider, span.dn_note_back_view_divider {font-weight: normal; color: #8d939e; font-size:initial}
 
 span.dn_note_priority_meta {font-weight: bolder;}
 span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3px;}
@@ -174,6 +175,6 @@ div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; paddi
  /* @note: we've moved this to the span */
  /* .gridNote:hover .gridNote__edit, .gridNote:hover .gridNote__locked {display: block; } */
  a.gridNote__locked {vertical-align: sub;}
- a.dn_create_note, a.dn_back_to_all_notes {display: block; margin-bottom: 30px !important;}
+ a.dn_create_note, a.dn_back_to_all_notes, a.dn_back_to_edit {display: inline-block; margin-bottom: 30px !important;}
 
  /** i **/
