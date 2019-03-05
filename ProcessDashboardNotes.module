@@ -79,9 +79,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	public function init() {
 
 		// @todo; delete when done development
-		/* for ($i=0; $i < 50; $i++) {
-			$this->generateFakeComments();
-		} */
+		for ($i=0; $i < 15; $i++) {
+			//$this->generateFakeComments();
+		}
 
 		$user = $this->wire('user');
 		$permissions = $this->wire('permissions');
@@ -198,10 +198,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			'delete' => $this->_('Delete'),
 		);
 
-
 		$notes = $this->getNotes();
-
-		// @todo: make sure pagination numbers still work after removal of some notes due to view access?!!!! otherwise, can create new page array and create from there maybe? or do own totals?
 
 		if($notes->count()) {
 			$start = $notes->getStart();
@@ -210,7 +207,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			$total = $notes->getTotal();
 			$headline = sprintf(__('%1$d to %2$d of %3$d'), $start+1, $end, $total);
 			if($total > $limit) {
-				$pager = $this->wire('modules')->get('MarkupPagerNav');
+				$pager = $modules->get('MarkupPagerNav');
 				#Solution for pagination when using URL segments
 				// get the url segment string.
 				$url = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr;
@@ -230,14 +227,12 @@ class ProcessDashboardNotes extends Process implements Module {
 		$form->attr('id', 'dn_notes_bulk');
 		$form->action = './';
 		$form->method = 'post';
-		//$form->description = $this->_('Notes');// @todo? needed?
 
 		// select dropdown
 		$label = '<label id="dn_action_select_label" for="dn_action_select">' . $this->_("Action") . '</label>';
 		$f = $modules->get('InputfieldSelect');
 		$f->attr('id+name', 'dn_action_select');
 		$f->addOptions($actions);
-		//$actions = $f->render() . $label;
 		$actions = $f->render();
 
 
@@ -283,8 +278,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $finalMarkup);
-		//$f->label = $this->_('Default Background Colour');
-		//$f->notes = "";// @todo?
 
 		$form->add($f);
 
@@ -301,7 +294,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->showInHeader();
 		$f->class .= ' dn_hide';// @todo: add to css!
 		$f->attr('value', $this->_('Apply'));
-		//$out .=  $f->render();
 		$form->add($f);
 
 		// post: saving all note settings
@@ -328,13 +320,21 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// @access-control: user has no visibility access to this note
 		if(!$this->checkAccess($this->note)) {
-			// @todo: testing, delete error? but redirect!
 			$this->error($this->_('You have no access to this note!'));
 			$this->wire('session')->redirect($this->baseURL);
 		}
 
 		$out = '';
 		$replyForm = '';
+		$editMarkup = '';
+		if($this->checkEdit($note)) {
+			$urlParamPageNumStr = $this->wire('input')->page ? "?page=" . $this->wire('input')->page : "";
+			$editURL = $this->baseURL . "/edit/{$note->id}/{$urlParamPageNumStr}";
+			$editClass = 'dn_back_to_edit';
+			$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
+			$viewEditDividerMarkup = "<span class='dn_note_back_edit_divider'>&#47;</span>";
+			$editMarkup = $viewEditDividerMarkup ."<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>";
+		}
 
 		$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
 		// @todo; configurable field to get author name!
@@ -342,37 +342,34 @@ class ProcessDashboardNotes extends Process implements Module {
 		$this->headline($note->title);
 
 		// for comments/responses to note
-		$depth = $this->settings->maxReply + 1;// since we start by minusing 1
+		// @note: if $this->settings->maxReply > 0, since we start by minusing 1, we add 1 to it. If $this->settings->maxReply == 0, we set it to infinity
+		$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
 
 		// @todo
 		$noteResponses = '';
-		// @todo: if responses allowed, fetch existing ones
-		if($note->reply == 1) {
-			if(!$note->dashboard_note) {
-				// @todo: ok html?
-				$noteResponses = "<p>" . $this->_('No responses posted yet') . "</p>";
-			}
-
+		// if responses allowed, fetch existing ones
+		if(1 == $note->reply) {
+			if(!$note->dashboard_note->count()) $noteResponses = "<p>" . $this->_('No responses posted yet.') . "</p>";
 			else {
-				$noteResponses =
+				// @todo: delete when done after sorting not new layout!
+				/*$noteResponses =
 					"<h3 id='dn_note_responses_header'>". $this->_('Responses') . "</h3>" .
-					$this->renderThreadedComments($note->dashboard_note,$depth);
+					$this->renderThreadedReplies($note->dashboard_note,$depth);*/
+					$noteResponses = $this->renderReplyForm();
 			}
-
 			$noteResponses = "<div id='dn_note_responses'>" . $noteResponses ."</div>";
-
-			$replyForm = $this->renderReplyForm();
-
+			//$replyForm = $this->renderReplyForm(false);
 		}
 
-
+		// asterisks @todo: use this or numbers 1 - 3?
+		$notePriority = str_repeat("&#42;",$note->priority);
+		$metaDivider = "&#47;";
 
 		$out .=
 			"<div id='dn_single_note'>" .
-				"<a href='{$this->baseURL}/{$this->pageNumParamStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
-				//"<h2>{$note->title}</h2>" .
+				"<a href='{$this->baseURL}/{$this->pageNumParamStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" . $editMarkup .
 				"<header class='uk-comment-header'>" .
-					"<div class='uk-comment-meta'>{$date} | {$author} | {$note->priority}</div>".
+					"<div class='uk-comment-meta'>{$date} {$metaDivider} {$author} {$metaDivider} {$notePriority}</div>".
 				"</header>" .
 				"<div id='dn_note_text'>{$note->text}</div>" .
 				$noteResponses.
@@ -393,36 +390,43 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function ___executeEdit() {
 
-		// @access-control: user has no visibility access to this note
-		if(!$this->checkAccess($this->note)) {
-			// @todo: testing, delete error? but redirect!
+		$note = $this->note;
+
+		// @access-control: user has no visibility access to this note OR users not allowed to edit each other's notes and this user is not the note author
+		$user = $this->wire('user');
+		$editOther = $this->checkEdit($note);
+		if((!$this->checkAccess($this->note)) || (!$editOther)) {
 			$this->error($this->_('You have no access to this note!'));
 			$this->wire('session')->redirect($this->baseURL);
 		}
 
-		// @todo: how to control direct  viewing of a note that a user has no visiblity access to!? By direct access we mean guessing the note id and adding that to the param string ?id=1234! we need to do access control here then and redirect! basically, check if the page has restrictions and if the current user qualifies to view the page! throw in own method so we can reuse!
-
-		//@todo: initial work on going back to where we were on the notes dash before arrive here. Need to make sure to call condition correctly + consider renaming the 'page' param string
-
 		$out = "";
-		$note = $this->note;
 		$modules = $this->wire('modules');
+		$viewMarkup = '';
 		$headline = $note->title ? $note->title : $this->_('Add New');
 		$warningNoticeNoVisibilityIDsSet = $this->_('Please note that if nothing is selected here, irrespective of your visibility setting, all notes will be visible to everyone with access to Dashboard Notes!');
-
 
 		if($note->title) {
 			if(1 == $note->locked) $this->warning($this->_('This note is locked for edits. Unlock it first to edit.'));
 			$headline = $note->title;
-			$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
-			// @todo; configurable field to get author name!
+			$date = date($this->dateFormat, $note->created);
+			// @todo; configurable field to get author name!?
 			$author = $note->createdUser->name;
-			// asterisks @todo: use this?
-			$priorities = array(1=>"&#42;",2=>"&#42;&#42;",3=>"&#42;&#42;&#42;");
-			$notePriority = $priorities[$note->priority];
+			// asterisks @todo: use this or numbers 1 - 3?
+			$notePriority = str_repeat("&#42;",$note->priority);
+			// @todo: delete when done
 			// @todo: sort out priority icons!
-			//$meta = "{$date} | {$author} | {$note->priority}";
-			$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span>";
+			$metaDivider = "&#47;";
+			$meta = "{$date} {$metaDivider} {$author} {$metaDivider} <span class='dn_note_priority_meta'>{$notePriority}</span>";
+
+			// view markup link
+			$urlParamPageNumStr = $this->wire('input')->page ? "?page=" . $this->wire('input')->page : "";
+			$viewURL = $this->baseURL . "/view/{$note->id}/{$urlParamPageNumStr}";
+			$viewClass = 'dn_back_to_edit';
+			$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
+			$viewEditDividerMarkup = "<span class='dn_note_back_view_divider'>&#47;</span>";
+			$viewMarkup = $viewEditDividerMarkup ."<a href='{$viewURL}' class='{$viewClass}'>" . $viewIcon . "</a>";
+
 		}
 
 		else {
@@ -432,10 +436,11 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$this->headline($headline);
 
-		// @todo: back to all notes should return you to page where you were!
+		// back to all notes should return you to page where you were unless pagination changed due to other reasons
 		$out .=
 			"<div id='dn_single_note'>" .
 				"<a href='{$this->baseURL}/{$this->pageNumParamStr}' class='dn_back_to_all_notes'><i class='fa fa-fw fa-arrow-circle-left'></i>" . $this->_('Back to all notes') . "</a>" .
+				$viewMarkup .
 				"<header class='uk-comment-header'>" .
 					"<div class='uk-comment-meta'>{$meta}</div>".
 				"</header>" .
@@ -446,12 +451,11 @@ class ProcessDashboardNotes extends Process implements Module {
 		$form->attr('id', 'dn_note_edit');
 		$form->action = './';
 		$form->method = 'post';
-		//$form->description = $note->title ? '' : $this->_('New Note');
 
 		// note: page ID
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('name', 'dn_note_page_id');
-		$f->attr('value', (int)$note->id);
+		$f->attr('value', (int) $note->id);
 
 		$form->add($f);
 
@@ -498,8 +502,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('value', $note->priority);
 		$f->label =  $this->_('Priority');
 		$f->notes = $this->_('Specify note priority/urgency.');
-
-		// @todo: in render, use icons for priority?! otherwise, can clash with colours below which may be used to denote other things!
 
 		$radioOptions = array (
 			1 => $this->_('Low'),
@@ -708,8 +710,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$form->add($f);
 
-
-
 		// post: saving single new or edited note
 		$post = $this->wire('input')->post;
 		if($post->dn_note_edit_btn) $this->save($form);
@@ -733,10 +733,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @todo: what about setting to show author image?
 
 		// @access-control: user has not allowed to view or edit global note settings
-		if($this->noSettings) {
-			//$this->error($this->_('You have no access to global note settings!')); //@todo?
-			$this->wire('session')->redirect($this->baseURL);
-		}
+		if($this->noSettings) $this->wire('session')->redirect($this->baseURL);
 
 		$out = '';
 
@@ -754,7 +751,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$form->attr('id', 'dn_note_settings');
 		$form->action = './';
 		$form->method = 'post';
-		//$form->description = $this->_('Settings');
 
 		/* ## notes date format ## */
 		$f = $modules->get('InputfieldRadios');
@@ -818,12 +814,14 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @note: we only save the values (e.g. "12,45,23,1")
 		// @note: for display and for JS configs we add the correct formatting rgba() around the values
 		$f->attr('value', $this->settings->textColour);
+
 		$form->add($f);
 
 		// hidden input to store selected default note background colour. a value of 0 means no colour set.
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_background_colour');
 		$f->attr('value', $this->settings->backgroundColour);// @todo: need to change this->backgroundColour in scripts!
+
 		$form->add($f);
 
 		/* ## notes display sort ## */
@@ -859,12 +857,28 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$form->add($f);
 
+		/* ## notes edit each others' ## */
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'dn_note_edit_others');
+		$f->attr('value', $this->settings->editOther);
+		$f->label =  $this->_('Users Can Edit Notes They Did Not Create?');
+		$f->notes = $this->_("Specify if users can edit each other's notes. Users will still be able to respond to notes that allow responses.");
+
+		$radioOptions = array (
+			1 => $this->_('Yes'),
+			2 => $this->_('No'),
+		);
+
+		$f->addOptions($radioOptions);
+
+		$form->add($f);
+
 		/* ## notes delete each others' ## */
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'dn_note_delete_others');
 		$f->attr('value', $this->settings->deleteOther);
 		$f->label =  $this->_('Users Can Delete Notes They Did Not Create?');
-		$f->notes = $this->_('Specify if users can delete each others notes.');
+		$f->notes = $this->_("Specify if users can delete each other's notes.");
 
 		$radioOptions = array (
 			1 => $this->_('Yes'),
@@ -889,7 +903,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('name', 'dn_note_max_reply_depth');
 		$f->attr('value', $this->settings->maxReply);// 0 = no maximum
 		$f->label = $this->_('Reply Depth');// @todo: change label?
-		$f->description = $this->_('Maximum allowed nested depth for replies to notes.');
+		$f->description = $this->_('Maximum allowed nested depth for replies to notes. A value of 0 means no maximum.');
 
 		$form->add($f);
 
@@ -1021,87 +1035,57 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function renderNotes($notes) {
 
-		/*
-		 @todo: @update: Thursday 28 February:
-		 - This now changes! We only show truncated text of notes + read more, which opens single note in own view (executeView()) -> this is because these notes are meant to have conversations. conversations can be long. it is just cleaner to have one note per page for viewing.
-		 - This is also important if we have deeply nested threads! In addition
-
-		 - this will also make reply form easier
-
-		 - we also use an MM like view: use <ul><li></li></ul> but without tooltip...and maybe also no hover thing? but we keep selected border, etc.
-
-
-		 - then work on save, maybe checkboxes will be ok since they are selected and will be sent! so, no worries there
-
-		 - so, copy the css and js you need from both processmmcs and mmcss
-
-		 - other properties below remain: this is because we need background-color; urgency (icon); author, etc
-
-		*/
-
-
-
-		/*
-			@todo: create method here to do notes checks: i.e.
-				- if there are restricted views checks: don't display if user restricted
-				- if sorting by priority, we need to do runtime sort! just add as properties, e.g. $note->backgroundColour; $note->priority; $note->text; $note->reply (if replies allowed); $note->visibility (if NOT 1, then further checks in $note->limitIDs); $note->limitIDs (if checking then this array should be populated, else, empty array): we'll then sort using added properties +check global $this->notesDisplaySortDirection;
-
-		*/
-
-		/*
-			@todo: @note for display!
-
-			@todo: we do this in bulk actions crud! coz we have one checkbox for many actions! publish, etc.
-			- notesDeleteOthers: we use page's $page->createdUser compared to $this->wire('user')->id: @note: can do $page->createdUser->id (I think)
-
-			@todo: here or in getNotes()? maybe here; separation of concerns? but if here, will mess up pagination! so, in pagination!
-			- notesMaxDisplayPerPage: this was included in sort if applicable when finding notes [but note, depending on visibility, can be fewer! @todo?]
-
-
-
-			- notesMaxReplyDepth: this is a tricky one; it limits the number of nested replies. it is tricky if doing server side since we have to check depth in recursion and then NOT OUTPUT a reply button. maybe easier to limit client-side using javascript? e.g. if we set config script to 4, then, JS will check if the depth of the child! google!
-
-		*/
-
-		$urlParamPageNumStr = $this->wire('input')->pageNumStr() ? "&page=" . $this->wire('input')->pageNumStr() : "";
-
+		$out = '';
+		$user = $this->wire('user');
+		$urlParamPageNumStr = $this->wire('input')->pageNumStr() ? "?page=" . $this->wire('input')->pageNumStr() : "";
 		$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
-		$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
+
 		// asterisks @todo: use this?
-		$priorities = array(1=>"&#42;",2=>"&#42;&#42;",3=>"&#42;&#42;&#42;");
 		//$priorities = array(1=>"fa-arrow-circle-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-up");
 		// fa-exclamation-triangle  fa-exclamation-circle
 		//$priorities = array(1=>"fa-arrow-circle-o-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-o-up");
 		$priorityClasses = array(1=>'dn_low_priority',2=>'dn_normal_priority',3=>'dn_high_priority');
 
-		$out = '';
-
 		// @todo! edit!
 		$out .= "<ul class='dn_notes_grid ui-helper-clearfix' data-gridmode='grid' data-gridsize='130'>";
 
-
+		// loop through notes, building markup
 		foreach ($notes as $note) {
 
 			// add margin left if required
 			#$classMarginLeft = $i ? " uk-margin-left" : "";
-			// @todo: create check here to see if editable (i.e. if locked)
-			// @todo: create check here to see if deletable (i.e. if note permissions prohibit deleting of others notes) > then remove trash icon: we check note created user! > remember a note is a page!: $this->notesDeleteOthers
-			// @todo: also truncate long titles!
-			//$viewURL = "<a href='{$this->baseURL}/view/?id={$note->id}'>…</a>";
-			$viewURL = $this->baseURL . "/view/?id={$note->id}{$urlParamPageNumStr}";
+			// @todo: better presentation of truncated text?
+			// @todo: what about long titles?! truncate?
+			$viewURL = $this->baseURL . "/view/{$note->id}/{$urlParamPageNumStr}";
+			$viewMarkup = "<a href='{$viewURL}' class='dn_note_view gridNote__edit'>" . $viewIcon. "</a>";
 
-			if($note->is(Page::statusLocked)){
-				$editURL = '#';
-				$editClass = 'gridNote__locked';
-				$editIcon = "<i class='fa fa-lock'></i>";
+			## editing rights and markup
+			// users not allowed to edit each other's notes and this user is not the note author
+			$showEditMarkup = $this->checkEdit($note);
+
+			if($showEditMarkup) {
+				$viewEditDividerMarkup = "<span class='dn_note_view_edit_divider'>&#47;</span>";
+				if($note->is(Page::statusLocked)){
+					$editURL = '#';
+					$editClass = 'gridNote__locked';
+					$editIcon = "<i class='fa fa-lock'></i>";
+					$editMarkup = "<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>";
+				}
+				// edit markup: note unlocked and can be edited (@note: including not global restriction on editing each other's notes)
+				else {
+					$editURL = $this->baseURL . "/edit/{$note->id}/{$urlParamPageNumStr}";
+					$editClass = 'gridNote__edit';
+					$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
+					$editMarkup = "<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>";
+				}
 			}
-			// note unlocked and can be edited
 			else {
-				$editURL = $this->baseURL . "/edit/?id={$note->id}{$urlParamPageNumStr}";
-				// @todo: change gridNote to gridNote?
-				$editClass = 'gridNote__edit';
-				$editIcon = "<i class='fa fa-lg fa-pencil-square-o'></i>";
+				$viewEditDividerMarkup = "";
+				$editMarkup = "";
 			}
+
+			##################
+
 
 			// @note: textColour NOT applied to div.dn_note
 			$textColour = $note->textColour ? " style='color:rgba({$note->textColour});'" : '';
@@ -1139,12 +1123,13 @@ class ProcessDashboardNotes extends Process implements Module {
 			$author = $note->createdUser->name;
 			// if note priority not set, it means note is "normal" so priority "2" set at runtime
 			if(!$note->priority) $note->priority = 2;
-			$notePriority = $priorities[$note->priority];
+			$notePriority = str_repeat("&#42;",$note->priority);
 			//fa-comments, fa-comments-o, fa-comment, fa-comment-o
 			$commentsCount = "<span class='fa fa-comments-o'><span class='dn_note_comments_count'>{$note->dashboard_note->count()}</span></span> ";
 			$priorityClass = " " . $priorityClasses[$note->priority];
 
-			$meta = "{$date} | {$author} | <span class='dn_note_priority_meta'>{$notePriority}</span>";
+			$metaDivider = "&#47;";
+			$meta = "{$date} {$metaDivider} {$author} {$metaDivider} <span class='dn_note_priority_meta'>{$notePriority}</span>";
 
 			##################
 
@@ -1171,9 +1156,11 @@ class ProcessDashboardNotes extends Process implements Module {
 							"</label>" .
 							// @todo: add locked too! i.e. gridNote__locked + edit classes!
 							"<span class='dn_note_view_edit'>" .
-								"<a href='{$viewURL}' class='dn_note_view gridNote__edit'>" . $viewIcon. "</a>" .
-								"<span class='dn_note_view_edit_divider'>&#47;</span>" .
-								"<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>" .
+								//"<a href='{$viewURL}' class='dn_note_view gridNote__edit'>" . $viewIcon. "</a>" .
+								$viewMarkup .
+								$viewEditDividerMarkup .
+								//"<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>" .
+								$editMarkup .
 							"</span>" .
 						"</div>" .
 					"</div>" .
@@ -1189,7 +1176,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 	/**
-	 * Recursively render list of threaded comments.
+	 * Recursively render list of threaded replies/comments to notes.
 
 	 * @param CommentArray $comments Array of comments.
 	 * @param integer $depth How deep to nest..
@@ -1198,7 +1185,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @return string $out Markup of threaded comments.
 	 *
 	 */
-	private function renderThreadedComments($comments, $depth = 1, $parent = 0, $first = 0) {
+	private function renderThreadedReplies($comments, $depth = 1, $parent = 0, $first = 0) {
 
 		$out = '';
 		$depth -= 1;
@@ -1234,7 +1221,7 @@ class ProcessDashboardNotes extends Process implements Module {
 					"<li>" .
 						"<article class='uk-comment'>" .
 							"<header class='uk-comment-header'>" .
-								"<h4 class='uk-comment-title'>{$comment->cite}</h4>" .
+								"<h4 class='uk-comment-title'>{$comment->cite} - {$comment->id}</h4>" .
 								"<div class='uk-comment-meta'>{$commentDate}</div>" .
 							"</header>" .
 							"<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
@@ -1249,7 +1236,7 @@ class ProcessDashboardNotes extends Process implements Module {
 							"</div>" .// close div.dn_note_comment_footer
 						"</article>";
 				######################### generate child-comment items [recursion] #########################
-				$out .= $this->renderThreadedComments($comments, $depth, $comment->id, $first);
+				$out .= $this->renderThreadedReplies($comments, $depth, $comment->id, $first);
 				// close the <li>
 				$out .= "</li>";
 			}// end if parent
@@ -1271,7 +1258,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @access private
 	 * @return void
 	 */
-	private function renderReplyForm() {
+	private function renderReplyForm($commentsExist=true) {
 
 		// @todo: might need token for csrf here since using own form!
 
@@ -1297,6 +1284,76 @@ class ProcessDashboardNotes extends Process implements Module {
 					"</div>" .
 				"</form>" .
 			"</div>";
+
+
+		$modules = $this->wire('modules');
+
+		// create form for all notes settings
+		$form = $modules->get('InputfieldForm');
+		$form->attr('id', 'dn_note_response_form');
+		$form->action = './';
+		$form->method = 'post';
+
+		// @todo: change this! we can just check here! no need to check in execute view!
+		$noteResponses = '';
+		if($commentsExist) {
+			bd('comments need to be shown');
+			$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
+			$noteResponses = $this->renderThreadedReplies($this->note->dashboard_note,$depth);
+		}
+
+
+		// inputfield markup to hold existing responses + reply to existing comment template (hidden)
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $noteResponses);
+		$f->label =  $this->_('Responses ');
+		$f->notes = $this->_('Pick text and background colours for this note. For the text, If none is picked, it will default to..');
+		// @todo: delete when done
+		/* $f->textFormat = Inputfield::textFormatNone;
+		$f->description = "<span class='fa fa-comment-o'></span>" . $this->_('Responses '); */
+
+		$form->add($f);
+
+		// new note: inputfield textarea
+		$f = $modules->get('InputfieldTextarea');
+		$f->attr('name', 'dn_response_text');
+		$f->attr('value', "");
+		$f->label = $this->_('Text');// @todo: change label?
+		$f->description = $this->_('Contents of your note. This is required.');
+		$f->required = true;
+		$f->rows = 5;
+
+		$form->add($f);
+
+
+		// hidden input to store selected default note text colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_page_id');
+		// @note: we only save the values (e.g. "12,45,23,1")
+		// @note: for display and for JS configs we add the correct formatting rgba() around the values
+		$f->attr('value', $this->note->id);
+		$form->add($f);
+
+		// hidden input to store selected default note background colour. a value of 0 means no colour set.
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_parent_id');
+		$f->attr('value', 0);
+		$form->add($f);
+
+		########
+
+		// save button
+		$f = $modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'dn_note_reply_btn');
+		$f->attr('value', $this->_('Save'));
+
+		$form->add($f);
+
+		// post: posting a response/comment to a note
+		$post = $this->wire('input')->post;
+		if($post->dn_note_reply_btn) $this->save($form);
+
+		$out = $form->render();
 
 		return $out;
 
@@ -1360,6 +1417,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$pages = $this->wire('pages');
 		$sanitizer = $this->wire('sanitizer');
 		$session = $this->wire('session');
+		$user = $this->wire('user');
 
 		$notePageID = (int) $post->dn_note_page_id;
 		$noteTitle = $sanitizer->text($post->dn_note_title);
@@ -1371,13 +1429,13 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// hidden input that holds the pagination str in order to preserve for redirection and hence 'back to all links' to page where this note was at in the dashboard
 		$paginationNumberStr = $sanitizer->pageName($post->dn_note_pagination_num_str);
-		$urlParamPageNumStr = $paginationNumberStr ? "&page=" . $paginationNumberStr : "";
+		$urlParamPageNumStr = $paginationNumberStr ? "?page=" . $paginationNumberStr : "";
 
 		// redirect back if no title or no text
 		if (!$noteTitle || !$noteText)  {
 			// @todo: error here, redirect!? ProcessWire will throw error anyway?
 			$this->error($this->_('A title and text are required.'));
-			$session->redirect($this->baseURL . "/edit/?id={$notePageID}{$urlParamPageNumStr}");
+			$session->redirect($this->baseURL . "/edit/{$notePageID}/{$urlParamPageNumStr}");
 		}
 
 		$parent = $this->wire('page')->child('include=all');
@@ -1424,7 +1482,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		// existing note
 		else {
 			$page = $pages->get($notePageID);
-
 			// no such page found
 			// @todo: redirect back to edit page with error
 			if(!$page) {
@@ -1436,14 +1493,13 @@ class ProcessDashboardNotes extends Process implements Module {
 			if($page->title != $noteTitle) {
 				if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
 			}
-
 		}
 
 		// name clash (note with specified name already exists), redirect
 		if($nameClash) {
 			$this->error($this->_('A note with that name already exists! Choose a different name.'));
 			// redirect
-			$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+			$session->redirect($this->baseURL . "/edit/{$page->id}/{$urlParamPageNumStr}");
 		}
 
 		// if NOT NEW NOTE and page locked ONLY save if removing lock
@@ -1455,13 +1511,13 @@ class ProcessDashboardNotes extends Process implements Module {
 				$page->save();
 				$this->message($this->_('Note unlocked for edits.'));
 				// redirect to edit after save
-				$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+				$session->redirect($this->baseURL . "/edit/{$page->id}/{$urlParamPageNumStr}");
 			}
 			// else, error, page locked, user needs to unlock note page first
 			else {
 				$this->error($this->_('This note is locked for edits. Change its locked status first and save before continuing.'));
 				// redirect to edit after save
-				$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
+				$session->redirect($this->baseURL . "/edit/{$page->id}/{$urlParamPageNumStr}");
 			}
 		}
 
@@ -1508,40 +1564,40 @@ class ProcessDashboardNotes extends Process implements Module {
 			3. Save + Add New note
 			4. Save + View note
 			5. Save + Edit next sibling note
-
-			@todo:
-			#5 is tricky!
-			- @todo: get next unlocked? naah; just get even locked, maybe they want to unlock it!
-			- what about view access! if note controlled, what to do? redirect? users will be confused! since setting stored in JSON, HOW do we query that? "limitVisibility":1 as exact phrase? try it!?
-
-			@todo: preserve url param strings as applicable @see above
-
 		*/
+
 		// save + exit: back to dashboard (keep pagination info!)
-		if('exit' == $noteAfterSave) {
-			bd('exit to view all notes dashboard after save');
-			$session->redirect($this->baseURL . "/{$paginationNumberStr}");
-		}
+		if('exit' == $noteAfterSave)  $session->redirect($this->baseURL . "/{$paginationNumberStr}");
 		// save + new: got to add new note screen. no need for any url param string
-		elseif('new' == $noteAfterSave) {
-			bd('got to create new note');
-			$session->redirect($this->baseURL . "/edit/");
-		}
+		elseif('new' == $noteAfterSave) $session->redirect($this->baseURL . "/edit/");
 		// save + view: view this note but build correct url param string
-		elseif('view' == $noteAfterSave) {
-			bd('go to view page for this note');
-			$viewURL = $this->baseURL . "/view/?id={$page->id}{$urlParamPageNumStr}";
-			$session->redirect($viewURL);
-		}
-		// next: go edit next accessible note but build correct url param string for the
+		elseif('view' == $noteAfterSave) $session->redirect($this->baseURL . "/view/{$page->id}/{$urlParamPageNumStr}");
+		// next: go edit next accessible note but build correct url param string for IT
+		// accessibility checks for two things: (i) can the user view the note? (ii) do the global settings allow editing each other's notes?
+		// @note: these restrictions do not apply to superusers
 		elseif('next' == $noteAfterSave) {
-			bd('edit next accessible sibling page for this note');
+			// selector for finding notes
+			$selector = "include=all,parent!=7";
+			if(!$user->isSuperuser()) {
+				// check for visibility restrictions
+				$excludedIDs = $this->getVisibilityLimitedNotesIDs();
+				if(strlen($excludedIDs)) $selector .= ",id!={$excludedIDs}";
+				// check for global editing restrictions (edit each other's notes)
+				if(2 == $this->settings->editOther) $selector .= ",created_users_id={$user->id}";
+			}
+			$next = $page->next($selector);
+			// @note: there is not guarantee that the next page will be on the same pagination as the current page! we can't help that
+			if($next->id) $pageID = $next->id;
+			// no next page, so stay where we are
+			else {
+				$pageID = $page->id;
+				// warning that no next note to edit found
+				$this->warning($this->_('No next note to edit.'));
+			}
+			$session->redirect($this->baseURL . "/edit/{$pageID}/{$urlParamPageNumStr}");
 		}
 		// stay on this page to continue editing it
-		else {
-			bd('staying right here continue edit');
-			$session->redirect($this->baseURL . "/edit/?id={$page->id}{$urlParamPageNumStr}");
-		}
+		else $session->redirect($this->baseURL . "/edit/{$page->id}/{$urlParamPageNumStr}");
 
 	}
 
@@ -1714,7 +1770,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function saveNoteReply($post) {
 
-		bd($post->dn_note_reply_btn,'dn_note_reply_btn in bulk actions');
+		bd($post->dn_note_parent_id,'note reply parent id');
+		bd($post->dn_note_page_id,'note page id');
+		bd($post->dn_response_text,'note response/comment text');
 
 
 	}
@@ -1742,6 +1800,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$settingsArray['backgroundColour'] = $sanitizer->text(str_replace(array("rgba(", ")"), "", $post->dn_note_background_colour));
 		$settingsArray['sort'] = (int) $post->dn_note_sort;
 		$settingsArray['sortDir'] = (int) $post->dn_note_sort_direction;
+		$settingsArray['editOther'] = (int) $post->dn_note_edit_others;
 		$settingsArray['deleteOther'] = (int) $post->dn_note_delete_others;
 		$settingsArray['displayMax'] = (int) $post->dn_note_max_display;
 		$settingsArray['maxReply'] = (int) $post->dn_note_max_reply_depth;
@@ -1838,32 +1897,25 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 */
 	private function getVisibilityLimitedNotesIDs() {
+
 		$excludedIDsStr = "";
 		$excludedIDsCache = $this->getVisibilityLimitedNotesCache();
+
 		// get array of current user's ID, roles IDs and permission IDs
 		$userIDs = $this->getUserIDs();
-		bd($userIDs, 'USER IDS of user, roles and permissions');
 		if(is_array($excludedIDsCache) && count($excludedIDsCache)) {
 			$excludedIDs = array();
 			foreach ($excludedIDsCache as $pageID => $limitIDs) {
-				// @todo: delete when done
-				bd(array_intersect($userIDs, $limitIDs),'INTERSECTION OF USERIDS AND LIMITIDS');
 				// user has access, so skip @note: this works because users, roles and permissions are all pages, hence have unique page IDs
 				if(count(array_intersect($userIDs, $limitIDs))) continue;
 				// array of pageIDs of notes user cannot view
 				$excludedIDs[] = $pageID;
 			}
-
-			// @todo: delete when done
-			bd($excludedIDs,'Excluded IDs array');
-
 			if(count($excludedIDs)) $excludedIDsStr = implode("|",$excludedIDs);
-			// @todo: delete when done
-			bd($excludedIDsStr,'Excluded IDs String');
-
 		}
 
 		return $excludedIDsStr;
+
 	}
 
 	/**
@@ -1965,7 +2017,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$defaultSettings = array('priority'=>2,'textColour'=>0,'backgroundColour'=>0,'reply'=>1,'locked'=>2,'limitVisibility'=>1,'limitVisibilityIDs'=>array());
 		$savedSettings = array();
 
-		$notePageID = (int) $this->wire('input')->get->id;
+		$notePageID =  $this->wire('sanitizer')->pageName($this->wire('input')->urlSegment2);
 		if($notePageID) {
 			$page = $this->wire('pages')->get($notePageID);
 			if($page->id > 0) {
@@ -2004,7 +2056,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function setGlobalNoteValues() {
 
-		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0, 'truncateMax'=>150,'width'=>300,'height'=>260);
+		$defaultSettings = array('dateFormat'=>1,'dateMonthLabel'=>2,'textColour'=>0,'backgroundColour'=>0,'sort'=>1,'sortDir'=>2,'editOther'=>1,'deleteOther'=>1,'displayMax'=>12,'maxReply'=>0, 'truncateMax'=>150,'width'=>300,'height'=>260);
 
 		$notesSettingsPage = $this->wire('page')->child('include=all');
 		$savedSettingsJSON = $notesSettingsPage->dashboard_notes_settings;
@@ -2035,13 +2087,14 @@ class ProcessDashboardNotes extends Process implements Module {
 	/* ######################### - UTILITIES - ######################### */
 
 	/**
-	 * Check if a user has access to view/edit the specified note page.
+	 * Check if a user has access to view/edit the specified note page based on note's visibility criteria.
 	 *
 	 * Access can be limited by role, permissions or users.
 	 * If in dashboard, skip to display such pages.
 	 * If URL to view/edit accessed directly, we will redirect to dashboard (note here!).
 	 *
 	 * @access private
+	 * @param Page $note The Note whose access is to be determined.
 	 * @return bool $access True if user has access else false
 	 *
 	 */
@@ -2084,6 +2137,26 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		return $access;
 
+	}
+
+	/**
+	 * Determines if a user can edit a given note based on certain global restrictions.
+	 *
+	 * If user is superuser, user can edit.
+	 * If global settings do not allow authors to edit each other's notes but current user is note author, user can edit.
+	 * If there are no global restrictions, user can edit.
+	 * No editing allowed in all other cases.
+	 *
+	 * @access private
+	 * @param Page $note The Note whose editing access is to be determined.
+	 * @return bool $canEdit True if user can edit Note page, else false.
+	 *
+	 */
+	private function checkEdit($note) {
+		$user = $this->wire('user');
+		$canEdit = false;
+		if(1 == $this->settings->editOther || $note->createdUser == $user || $user->isSuperuser() || !$note->id) $canEdit = true;
+		return $canEdit;
 	}
 
 	/* ######################### - INSTALLERS - ######################### */
@@ -2438,8 +2511,9 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		);
 
-		$pageID = $randomValuesArray['notes'][( array_rand($randomValuesArray['notes'],1) )];
-		$page = $this->wire('pages')->get($pageID);
+		//$pageID = $randomValuesArray['notes'][( array_rand($randomValuesArray['notes'],1) )];
+		//$page = $this->wire('pages')->get($pageID);
+		$page = $this->wire('pages')->get("template=dashboard-note,sort=random");
 		$length = $randomValuesArray['length'][( array_rand($randomValuesArray['length'],1) )];
 		$textNumber = $randomValuesArray['text_number'][( array_rand($randomValuesArray['text_number'],1) )];
 		$cite = $randomValuesArray['cite'][( array_rand($randomValuesArray['cite'],1) )];
@@ -2466,7 +2540,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		//$c->downvotes = 3;
 		//$c->parent_id = 165; // or another comment's id
 		//$c->parent_id = $page->dashboard_note->random(); // or another comment's id
-		$c->parent_id = mt_rand(3,7); // or another comment's id
+		//$c->parent_id = mt_rand(0,7); // or another comment's id
 		//$c->status = Comment::statusApproved;
 		//$c->status = 1;
 		// $c->ip = '127.0.0.1';
