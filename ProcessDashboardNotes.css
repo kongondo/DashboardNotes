@@ -73,7 +73,6 @@ span.dn_note_view_edit_divider, span.dn_note_back_edit_divider, span.dn_note_bac
 }
 
 span.dn_note_back_edit_divider, span.dn_note_back_view_divider {font-weight: normal; color: #8d939e; font-size:initial}
-
 span.dn_note_priority_meta {font-weight: bolder;}
 span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3px;}
 
@@ -91,15 +90,12 @@ span.fa span.dn_note_comments_count, span#dn_note_response_label {margin-left: 3
  label.gridNote__icon {display: none;}
  .gridNote:hover label.gridNote__icon:hover {display: block; color: #e83561; background-color: white;}
 
-
-
  /** button **/
- /* @todo: revisit these! here we override PW admin theme styling of our colour picker buttons */
+ /* @todo: revisit these? here we override PW admin theme styling of our colour picker buttons */
  .pcr-app .pcr-interaction .pcr-save {background: #4285f4 !important;}
  .pcr-app .pcr-interaction .pcr-clear {background: #f44250 !important;}
  button#dn_actions_btn {display: none;}
-
-
+ div#dn_note_responses button.dn_response_reply_btn {margin-top:15px;}
 
  /** list **/
  div#top_pager .MarkupPagerNav, div#bottom_pager .MarkupPagerNav {float: right;}
@@ -157,8 +153,7 @@ li.gridNote.dn_normal_priority {border: 1px solid green;}
 li.gridNote.dn_high_priority {border: 1px solid red;} */
 
 /** article **/
-div#dn_note_responses ul.dn_threaded_comments article.uk-comment {background-color:#1c2836; background-color: rgba(237, 241, 247, 0.5);padding:20px; border-radius: 10px; /* color:white; */}
-div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; padding-right:15px}
+div#dn_note_responses ul.dn_threaded_comments article.uk-comment {background-color:#1c2836; background-color: rgba(237, 241, 247, 0.5);padding:20px; border-radius: 10px;}
 
  /** anchor **/
  div#dn_menu ul li a:first-child {padding-left: 0;}
@@ -176,5 +171,6 @@ div#dn_note_responses ul.dn_threaded_comments article p{padding-left:15px; paddi
  /* .gridNote:hover .gridNote__edit, .gridNote:hover .gridNote__locked {display: block; } */
  a.gridNote__locked {vertical-align: sub;}
  a.dn_create_note, a.dn_back_to_all_notes, a.dn_back_to_edit {display: inline-block; margin-bottom: 30px !important;}
+div#dn_note_responses a.dn_note_comment_action_reply {display:block; margin-top: 20px;}
 
  /** i **/
