@@ -188,6 +188,45 @@ function ProcessDashboardNotes($) {
 	}
 
 	/**
+	 *
+	 * @param integer $commentParentID The ID of the parent of the intended response to the existing response.
+	 * @param object $parent The <article> element that is the parent of the click reply <a>.
+	 */
+	function cloneResponseToResponseMarkup($commentParentID, $parent) {
+
+		var $form = $parent.find("div.dn_response_inputs_wrapper");
+		// if form already cloned and attached, slide toggle it and return
+		if ($form.length) {
+			$form.slideToggle( "slow" );
+			return;
+		}
+
+		// clone the hidden div with the template inputs (textarea and input hidden)
+		var $templateResponse = $("div#dn_note_responses_template").clone();
+		// change their attributes (IDs, values, names, as applicable)
+		$templateResponse.attr("id", "dn_response_inputs_wrapper_" + $commentParentID);
+		$templateResponse.addClass("dn_response_inputs_wrapper");
+		$templateResponse.hide();
+		// textarea
+		var $responseText = $templateResponse.find("textarea#dn_response_text_template");
+		$responseText.attr('id', "dn_response_text_" + $commentParentID);
+		$responseText.attr('name', "dn_response_text[]");
+		// input hidden
+		var $responseParentID = $templateResponse.find("input#dn_response_parent_id_template");
+		$responseParentID.attr('id', "dn_response_parent_id_" + $commentParentID);
+		$responseParentID.attr('name', "dn_response_parent_id[]");
+		$responseParentID.val($commentParentID);
+		// response button (@note: submits whole form as well!)
+		var $responseButton = $templateResponse.find("button#dn_response_reply_btn_template");
+		$responseButton.attr('id', "dn_response_reply_btn_" + $commentParentID);
+		$responseButton.addClass("dn_response_reply_btn");
+		// append to <article></article>
+		$parent.append($templateResponse).find('.dn_response_inputs_wrapper').slideDown("slow");
+
+
+	}
+
+	/**
 	 * Initialise Pickr.
 	 *
 	 * @param object $targetElement Element which will be replaced with the actual color-picker.
@@ -295,7 +334,6 @@ function ProcessDashboardNotes($) {
 
 		// change of "delete/selected" status for an item event
 		$(document).on("change", ".gridNote__selectbox", function () {
-			console.log('checkbox changed');
 			updateSelectClass($(this));
 			// all notes parent wrapper
 			parent = $(this).parents('div#dn_notes_container');
@@ -311,12 +349,13 @@ function ProcessDashboardNotes($) {
 			notesSelection($(this),e);
 		});
 
+		// add form to respond to an existing response to a note
 		$('ul#dn_threaded_comments_main').on('click', 'a.dn_note_comment_action_reply', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
 			var $commentParentID = $(this).attr('data-comment-id');
-			console.log($commentParentID,'parent id of this reply');
-			
+			var $parent = $(this).parents('article.dn_response_wrapper');
+			cloneResponseToResponseMarkup($commentParentID, $parent)
 		});
 
 
