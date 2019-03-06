@@ -78,11 +78,6 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	public function init() {
 
-		// @todo; delete when done development
-		for ($i=0; $i < 15; $i++) {
-			//$this->generateFakeComments();
-		}
-
 		$user = $this->wire('user');
 		$permissions = $this->wire('permissions');
 
@@ -270,8 +265,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// rendered notes
 		$notesMarkup = "<div id='dn_notes_container'>" . $this->renderNotes($notes) . "</div>";
 
-
-		// bottom pagination panel @todo!
+		// bottom pagination panel
 		$bottomPaginationPanel = "<div id='bottom_pager'>{$pgOut}</div>";
 
 		$finalMarkup = $topPanel . $topPaginationPanel . $notesMarkup . $bottomPaginationPanel . $this->renderShiftSelectMarkup();
@@ -292,7 +286,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('id+name', 'dn_actions_btn');
 		$f->icon = 'check-square-o';
 		$f->showInHeader();
-		$f->class .= ' dn_hide';// @todo: add to css!
+		$f->class .= ' dn_hide';
 		$f->attr('value', $this->_('Apply'));
 		$form->add($f);
 
@@ -325,7 +319,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		$out = '';
-		$replyForm = '';
 		$editMarkup = '';
 		if($this->checkEdit($note)) {
 			$urlParamPageNumStr = $this->wire('input')->page ? "?page=" . $this->wire('input')->page : "";
@@ -345,22 +338,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		// @note: if $this->settings->maxReply > 0, since we start by minusing 1, we add 1 to it. If $this->settings->maxReply == 0, we set it to infinity
 		$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
 
-		// @todo
-		$noteResponses = '';
-		// if responses allowed, fetch existing ones
-		if(1 == $note->reply) {
-			if(!$note->dashboard_note->count()) $noteResponses = "<p>" . $this->_('No responses posted yet.') . "</p>";
-			else {
-				// @todo: delete when done after sorting not new layout!
-				/*$noteResponses =
-					"<h3 id='dn_note_responses_header'>". $this->_('Responses') . "</h3>" .
-					$this->renderThreadedReplies($note->dashboard_note,$depth);*/
-					$noteResponses = $this->renderReplyForm();
-			}
-			$noteResponses = "<div id='dn_note_responses'>" . $noteResponses ."</div>";
-			//$replyForm = $this->renderReplyForm(false);
-		}
-
 		// asterisks @todo: use this or numbers 1 - 3?
 		$notePriority = str_repeat("&#42;",$note->priority);
 		$metaDivider = "&#47;";
@@ -372,9 +349,9 @@ class ProcessDashboardNotes extends Process implements Module {
 					"<div class='uk-comment-meta'>{$date} {$metaDivider} {$author} {$metaDivider} {$notePriority}</div>".
 				"</header>" .
 				"<div id='dn_note_text'>{$note->text}</div>" .
-				$noteResponses.
-				$replyForm .
+				$this->renderReplyMarkup() .
 			"</div>";
+
 		return $out;
 
 	}
@@ -414,8 +391,6 @@ class ProcessDashboardNotes extends Process implements Module {
 			$author = $note->createdUser->name;
 			// asterisks @todo: use this or numbers 1 - 3?
 			$notePriority = str_repeat("&#42;",$note->priority);
-			// @todo: delete when done
-			// @todo: sort out priority icons!
 			$metaDivider = "&#47;";
 			$meta = "{$date} {$metaDivider} {$author} {$metaDivider} <span class='dn_note_priority_meta'>{$notePriority}</span>";
 
@@ -595,8 +570,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->addOptions($radioOptions);
 
 		$fieldset->add($f);
-
-		// @todo: move to function + show if!
 
 		// note visibility: by role (2)
 		$f = $modules->get('InputfieldAsmSelect');
@@ -1125,7 +1098,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			if(!$note->priority) $note->priority = 2;
 			$notePriority = str_repeat("&#42;",$note->priority);
 			//fa-comments, fa-comments-o, fa-comment, fa-comment-o
-			$commentsCount = "<span class='fa fa-comments-o'><span class='dn_note_comments_count'>{$note->dashboard_note->count()}</span></span> ";
+			$commentsCount = "<span class='fa fa-comments-o'><span class='dn_note_comments_count'>{$note->dashboard_note->count()}</span></span>";
 			$priorityClass = " " . $priorityClasses[$note->priority];
 
 			$metaDivider = "&#47;";
@@ -1219,7 +1192,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 				$out .=
 					"<li>" .
-						"<article class='uk-comment'>" .
+						"<article class='uk-comment dn_response_wrapper'>" .
 							"<header class='uk-comment-header'>" .
 								"<h4 class='uk-comment-title'>{$comment->cite} - {$comment->id}</h4>" .
 								"<div class='uk-comment-meta'>{$commentDate}</div>" .
@@ -1258,32 +1231,25 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * @access private
 	 * @return void
 	 */
-	private function renderReplyForm($commentsExist=true) {
+	private function renderReplyMarkup() {
 
-		// @todo: might need token for csrf here since using own form!
+		$note = $this->note;
+		$out = "";
 
-		$out =
-			"<div id='dn_note_response_form'>" .
-				"<h3 id='dn_note_response_form_header'>" .
-					"<span class='fa fa-comment-o'></span>".
-					"<span id='dn_note_response_label'>" . $this->_('Respond') . "</span>" .
-				"</h3>" .
-				"<form class='uk-grid uk-grid-small' action='./' method='post' uk-grid='' >" .
-					"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-						"<label>" .
-							"<textarea name='dn_response_text' class='required uk-textarea' required='' rows='5' cols='50'></textarea>" .
-						"</label>" .
-					"</div>" .
-					"<div class='uk-width-1-1 uk-grid-margin uk-first-column'>" .
-						"<button type='submit' class='uk-button uk-button-primary' name='dn_note_reply_btn' value='1'>" .
-							$this->_('Reply') .
-						"</button>" .
-						// @TODO: ADD ONE HIDDEN ONE FOR TOKEN!!!
-						"<input type='hidden' name='dn_note_page_id' value='{$this->note->id}'>" .
-						"<input type='hidden' name='dn_note_parent_id' value='0'>" .
-					"</div>" .
-				"</form>" .
-			"</div>";
+		// if responses NOT allowed, return
+		if(2 == $note->reply) return $out;
+
+		$noteResponses = '';
+		// if responses exist, fetch them
+		if(!$note->dashboard_note->count()) {
+			$noteResponses = "<p>" . $this->_('There are no responses to this note.') . "</p>";
+		}
+		else {
+			$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
+			$noteResponses = $this->renderThreadedReplies($this->note->dashboard_note,$depth);
+		}
+
+		// @TODO: NEED TO ADD BUTTONS TO CLONED FORMS!!!
 
 
 		$modules = $this->wire('modules');
@@ -1293,40 +1259,71 @@ class ProcessDashboardNotes extends Process implements Module {
 		$form->attr('id', 'dn_note_response_form');
 		$form->action = './';
 		$form->method = 'post';
+		$form->description = $this->_('Responses');
 
-		// @todo: change this! we can just check here! no need to check in execute view!
-		$noteResponses = '';
-		if($commentsExist) {
-			bd('comments need to be shown');
-			$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
-			$noteResponses = $this->renderThreadedReplies($this->note->dashboard_note,$depth);
-		}
-
-
-		// inputfield markup to hold existing responses + reply to existing comment template (hidden)
+		// inputfield markup to hold existing responses
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $noteResponses);
-		$f->label =  $this->_('Responses ');
-		$f->notes = $this->_('Pick text and background colours for this note. For the text, If none is picked, it will default to..');
-		// @todo: delete when done
-		/* $f->textFormat = Inputfield::textFormatNone;
-		$f->description = "<span class='fa fa-comment-o'></span>" . $this->_('Responses '); */
+		//$f->label =  $this->_('Responses ');
+		//$f->label =  " ";
+		//$f->skipLabelHeader = Inputfield::skipLabelHeader;
 
 		$form->add($f);
 
 		// new note: inputfield textarea
 		$f = $modules->get('InputfieldTextarea');
-		$f->attr('name', 'dn_response_text');
+		$f->attr('name', 'dn_note_response_text');
 		$f->attr('value', "");
-		$f->label = $this->_('Text');// @todo: change label?
-		$f->description = $this->_('Contents of your note. This is required.');
-		$f->required = true;
+		$f->label = $this->_('Respond to this note');// @todo: change label?
 		$f->rows = 5;
 
 		$form->add($f);
 
+		/*
+			- inputfield markup to hold template reply form for cloning in JS
+			- it contains a textarea and a hidden input for replying to exising comments/responses only
+			- the textarea is for the text and the hidden input for the ID of the parent comment
+			- the parent comment is the one being responded to (as opposed to a response to the note itself)
+			- this form is hidden using CSS
+		*/
 
-		// hidden input to store selected default note text colour. a value of 0 means no colour set.
+		## hidden template for JS cloning ##
+
+
+		// hidden textarea to clone in JS to use to store text of the response to an existing comment
+		// its value will be changed in JS after cloning.
+		// its name will also be changed to handle multiple inputs ([])
+		$t = $modules->get('InputfieldTextarea');
+		$t->attr('id+name', 'dn_response_text_template');
+		$t->attr('value', "");
+		$t->rows = 5;
+		$responseToCommentTemplate = $t->render();
+
+		// hidden input to clone in JS to use to store parent ID of the response to an existing comment
+		// its value will be changed in JS after cloning. It cannot be 0!
+		// its name will also be changed to handle multiple inputs ([])
+		$t = $modules->get('InputfieldHidden');
+		$t->attr('id+name', 'dn_response_parent_id_template');
+		$t->attr('value', 0);
+		$responseToCommentTemplate .= $t->render();
+
+		$t = $modules->get('InputfieldSubmit');
+		$t->attr('id', 'dn_response_reply_btn_template');
+		$t->attr('name', 'dn_note_reply_btn');
+		$t->attr('value', $this->_('Reply'));
+		$responseToCommentTemplate .= $t->render();
+
+		$responseToCommentTemplate = "<div id='dn_note_responses_template'>" . $responseToCommentTemplate ."</div>";
+
+		$f = $modules->get('InputfieldMarkup');
+		$f->attr('value', $responseToCommentTemplate);
+		$f->class = "dn_hide";
+
+		$form->add($f);
+
+		## inputs relating to note ##
+
+		// hidden input to store note page id
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_page_id');
 		// @note: we only save the values (e.g. "12,45,23,1")
@@ -1334,10 +1331,16 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f->attr('value', $this->note->id);
 		$form->add($f);
 
-		// hidden input to store selected default note background colour. a value of 0 means no colour set.
+		// hidden input to store parent id of the comment that is a response to the note itself. Its value will always be 0.
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_parent_id');
 		$f->attr('value', 0);
+		$form->add($f);
+
+		// hidden input to store param string for pagination. Helps to properly redirect to viewing the note after submitting responses
+		$f = $modules->get('InputfieldHidden');
+		$f->attr('id+name', 'dn_note_pagination_num_str');
+		$f->attr('value', $this->pageNumParamStr);
 		$form->add($f);
 
 		########
@@ -1345,7 +1348,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// save button
 		$f = $modules->get('InputfieldSubmit');
 		$f->attr('id+name', 'dn_note_reply_btn');
-		$f->attr('value', $this->_('Save'));
+		$f->attr('value', $this->_('Reply'));
 
 		$form->add($f);
 
@@ -1353,7 +1356,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$post = $this->wire('input')->post;
 		if($post->dn_note_reply_btn) $this->save($form);
 
-		$out = $form->render();
+		$out = "<div id='dn_note_responses'>" . $form->render() ."</div>";
 
 		return $out;
 
@@ -1759,21 +1762,82 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Save a response to a note.
+	 * Save one or more responses to a note or a note's existing responses.
 	 *
 	 * This can come from the main form on the page or forms built on the fly for nested responses.
 	 *
 	 * @access private
-	 * @param array $post Input Post with new or existing note to save.
-	 * @access private
+	 * @param array $post Input Post with new responses to save.
 	 *
 	 */
 	private function saveNoteReply($post) {
 
-		bd($post->dn_note_parent_id,'note reply parent id');
-		bd($post->dn_note_page_id,'note page id');
-		bd($post->dn_response_text,'note response/comment text');
+		$notePageID = (int) $post->dn_note_page_id;
 
+		// check if we have a page to save to
+		$page = $this->wire('pages')->get($notePageID);
+		if(!$page) {
+			$this->error($this->_('We could not find that page!'));
+			$this->wire('session')->redirect($this->baseURL);
+		}
+
+		$user = $this->wire('user');
+		$sanitizer = $this->wire('sanitizer');
+
+		// hidden input that holds the pagination str in order to preserve for redirection and hence 'back to all links' to page where this note was at in the dashboard
+		$paginationNumberStr = $sanitizer->pageName($post->dn_note_pagination_num_str);
+		$urlParamPageNumStr = $paginationNumberStr ? "?page=" . $paginationNumberStr : "";
+
+		// direct response to note itself
+		$noteResponseParentID = 0;// this will always be zero anyway
+		$noteResponseText = $sanitizer->textarea($post->dn_note_response_text);
+
+		// responses to existing comments/responses @note: arrays
+		$responsesToResponsesParentIDs = $post->dn_response_parent_id;
+		$responsesToResponsesText = $post->dn_response_text;
+
+		##  process and save comments/responses ##
+		$page->of(false);$i = 0;
+		// responses to responses
+		if(is_array($responsesToResponsesParentIDs) && count($responsesToResponsesParentIDs)) {
+			foreach($responsesToResponsesParentIDs as $key => $parentID) {
+				$text = $sanitizer->textarea($responsesToResponsesText[$key]);
+				// skip if no response text
+				if(!strlen($text)) continue;
+				// create and add new comment
+				$c = new Comment();
+				$c->text = $text;
+				$c->cite = $user->get('title|name');
+				$c->email = $user->email;// @todo: do we really need this?
+				$c->parent_id = (int) $parentID;
+				$c->created_users_id = $user->id;
+				$page->dashboard_note->add($c);
+				$i++;
+			}
+		}
+
+		// add main/direct response to note
+		if(strlen($noteResponseText)) {
+			$c = new Comment();
+			$c->text = $noteResponseText;
+			$c->cite = $user->get('title|name');
+			$c->email = $user->email;// @todo: do we really need this?
+			$c->created_users_id = $user->id;
+			$page->dashboard_note->add($c);
+			$i++;
+		}
+
+		## save + messages ##
+		if($i) {
+			// save only if something posted!
+			$page->save('dashboard_note');
+			$page->of(true);
+			$message = sprintf(_n("Save %d response.", "Saved %d responses.", $i), $i);
+			$this->message($message);
+		}
+		else $this->error($this->_('No responses received!'));
+
+		$this->wire('session')->redirect($this->baseURL . "/view/{$page->id}/{$urlParamPageNumStr}");
 
 	}
 
@@ -2277,6 +2341,9 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 		$this->message('Dashboard Notes: Deleted Fields dashboard_note and dashboard_notes_settings');
 
+		// delete the visibility limit cache
+		$this->wire('cache')->delete("dashboard-notes");// delete the cache
+
 	}
 
 	/**
@@ -2494,66 +2561,5 @@ class ProcessDashboardNotes extends Process implements Module {
 		$p->save();
 
 	}
-
-	/**
-	 * Generate fake comments for development. @todo: delete when done!
-	 */
-	private function generateFakeComments() {
-
-		$randomValuesArray = array(
-
-			'notes' => array(1297,1298,1299,1308,1319,1320,1321,1322,1323,1324,1325,1326,1327),
-			'length' => array('short','medium','long','verylong'),
-			'text_number' => array(1,2,3,4,5,6),
-			'cite' => array('Peter','Drogba','Ashkur','Nancy','Jenny','Ken','Ben','Ampfo'),
-			'email_domain' => array('@yahoo.com','@gmail.com','@outlook.de','@hotmail.co.uk'),
-
-
-		);
-
-		//$pageID = $randomValuesArray['notes'][( array_rand($randomValuesArray['notes'],1) )];
-		//$page = $this->wire('pages')->get($pageID);
-		$page = $this->wire('pages')->get("template=dashboard-note,sort=random");
-		$length = $randomValuesArray['length'][( array_rand($randomValuesArray['length'],1) )];
-		$textNumber = $randomValuesArray['text_number'][( array_rand($randomValuesArray['text_number'],1) )];
-		$cite = $randomValuesArray['cite'][( array_rand($randomValuesArray['cite'],1) )];
-		$emailDomain = $randomValuesArray['email_domain'][( array_rand($randomValuesArray['email_domain'],1) )];
-
-		$http = new WireHttp();
-
-		$response = $http->get("https://loripsum.net/api/{$textNumber}/{$length}/plaintext");
-		  if($response !== false) {
-			$text = $this->wire('sanitizer')->entities($response);
-			$this->message('Successful response');
-		  } else {
-			$this->error("HTTP request failed: " . $http->getError());
-		}
-
-		$c = new Comment();
-		$c->text = str_replace("Lorem ipsum dolor sit amet, consectetur adipiscing elit.", "",$text);
-		//$c->cite = $user->get('title|name');
-		$c->cite = $cite;
-		$c->email = "{$cite}{$emailDomain}";
-		//$c->website = '';
-		//$c->stars = 78;
-		//$c->upvotes = 41;
-		//$c->downvotes = 3;
-		//$c->parent_id = 165; // or another comment's id
-		//$c->parent_id = $page->dashboard_note->random(); // or another comment's id
-		//$c->parent_id = mt_rand(0,7); // or another comment's id
-		//$c->status = Comment::statusApproved;
-		//$c->status = 1;
-		// $c->ip = '127.0.0.1';
-		// $c->user_agent = 'Chrome';
-		//$c->created_users_id = $user->id;
-
-		$page->of(false);
-		$page->dashboard_note->add($c);
-		$page->save('dashboard_note');
-		$page->of(true);
-
-
-	}
-
 
 }
