@@ -31,7 +31,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// @User role needs 'dashboard-notes' permission
 		// @$permission = 'dashboard-notes';
-		// @Installs MarkupMenuBuilder
 
 		return array(
 			'title' => 'Dashboard Notes: Process',
@@ -169,12 +168,12 @@ class ProcessDashboardNotes extends Process implements Module {
 	/* ######################### - VIEWS - ######################### */
 
 	/**
-	 * Displays a list of the menus.
+	 * Landing page for Dashboard Notes.
 	 *
-	 * This function is executed when a menu with Dashboard Notes Process assigned is accessed.
+	 * Displays optionally paginated list of notes in grid format.
 	 *
 	 * @access public
-	 * @return string $form Form markup.
+	 * @return string $out Markup output.
 	 *
 	 */
 	public function ___execute() {
@@ -303,9 +302,8 @@ class ProcessDashboardNotes extends Process implements Module {
 	/**
 	 * Renders a note for viewing and responses if enabled.
 	 *
-	 *
 	 * @access public
-	 * @return string $form Form markup. @todo
+	 * @return string $out Markup of output.
 	 *
 	 */
 	public function ___executeView() {
@@ -329,8 +327,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			$editMarkup = $viewEditDividerMarkup ."<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>";
 		}
 
-		$date = date($this->dateFormat, $note->created);// @todo: get from overall settings!
-		// @todo; configurable field to get author name!
+		$date = date($this->dateFormat, $note->created);
+		// @todo; configurable field to get author name!?
 		$author = $note->createdUser->name;
 		$this->headline($note->title);
 
@@ -357,12 +355,12 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Renders a single note for editing. @todo
+	 * Renders a single note for editing.
 	 *
 	 * Caters for both new and existing notes.
 	 *
 	 * @access public
-	 * @return string $out Create/Edit note markup.
+	 * @return string $out Markup of Create/Edit output.
 	 *
 	 */
 	public function ___executeEdit() {
@@ -694,10 +692,10 @@ class ProcessDashboardNotes extends Process implements Module {
 	}
 
 	/**
-	 * Renders global notes settings for editing. @todo
+	 * Renders global notes settings for editing.
 	 *
 	 * @access public
-	 * @return string $form Form markup.
+	 * @return string $out Markup of settings output.
 	 *
 	 */
 	public function ___executeSettings() {
@@ -793,7 +791,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// hidden input to store selected default note background colour. a value of 0 means no colour set.
 		$f = $modules->get('InputfieldHidden');
 		$f->attr('id+name', 'dn_note_background_colour');
-		$f->attr('value', $this->settings->backgroundColour);// @todo: need to change this->backgroundColour in scripts!
+		$f->attr('value', $this->settings->backgroundColour);
 
 		$form->add($f);
 
@@ -807,7 +805,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$radioOptions = array (
 			1 => $this->_('Date'),
 			2 => $this->_('Title'),
-			// @todo: unsure about this since requires setting priority as a note page propery during runtime
+			// @note: effected at runtime since requires setting priority as a note page property during runtime
 			3 => $this->_('Priority'),
 		);
 
@@ -875,7 +873,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$f = $modules->get('InputfieldInteger');
 		$f->attr('name', 'dn_note_max_reply_depth');
 		$f->attr('value', $this->settings->maxReply);// 0 = no maximum
-		$f->label = $this->_('Reply Depth');// @todo: change label?
+		$f->label = $this->_('Reply Depth');
 		$f->description = $this->_('Maximum allowed nested depth for replies to notes. A value of 0 means no maximum.');
 
 		$form->add($f);
@@ -883,8 +881,8 @@ class ProcessDashboardNotes extends Process implements Module {
 		/* ## note maximum reply depth ## */
 		$f = $modules->get('InputfieldInteger');
 		$f->attr('name', 'dn_note_truncate_max');
-		$f->attr('value', $this->settings->truncateMax);// 150
-		$f->label = $this->_('Note Preview Maximum Characters');// @todo: change label?
+		$f->attr('value', $this->settings->truncateMax);// default 150 @todo: @related: we need to fix how this relates to inline CSS for Note Titles!
+		$f->label = $this->_('Note Preview Maximum Characters');
 		$f->description = $this->_('Maximum characters for truncation for note text preview in dashboard..');
 
 		$form->add($f);
@@ -949,14 +947,11 @@ class ProcessDashboardNotes extends Process implements Module {
 		$settingsURL = $this->baseURL . "/settings/";
 
 		$allNotesText = $this->_('Notes');
-		//$addNoteText = $this->_('Notes');
 		$allNoteSettingsText = $this->_('Settings');
 
 		$menuItemsArray = array(
-
 			'all' => array( 'href' => $this->baseURL, 'link_text' => $allNotesText),
 			'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
-
 		);
 
 		$menuItems = '';
@@ -1019,8 +1014,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		//$priorities = array(1=>"fa-arrow-circle-o-down",2=>"fa-minus-circle",3=>"fa-arrow-circle-o-up");
 		$priorityClasses = array(1=>'dn_low_priority',2=>'dn_normal_priority',3=>'dn_high_priority');
 
-		// @todo! edit!
-		$out .= "<ul class='dn_notes_grid ui-helper-clearfix' data-gridmode='grid' data-gridsize='130'>";
+		$out .= "<ul class='dn_notes_grid ui-helper-clearfix'>";
 
 		// loop through notes, building markup
 		foreach ($notes as $note) {
@@ -1062,8 +1056,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 			// @note: textColour NOT applied to div.dn_note
 			$textColour = $note->textColour ? " style='color:rgba({$note->textColour});'" : '';
-			// @todo: delete when done
-			//$backgroundColour = $note->backgroundColour ? " style='background-color:rgba({$note->backgroundColour});'" : '';
 			$backgroundColour = $note->backgroundColour ? "background-color:rgba({$note->backgroundColour});" : '';
 
 			// note width + height + background colour inline CSS styles. applied to div.dn_note
@@ -1071,7 +1063,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			$height = "height:{$this->settings->height}px;";
 			$noteWrapperStyles = " style='{$width}{$height}{$backgroundColour}'";
 
-			// @todo: we'll use this to do visibility checks and skip if required
+			// we'll use this to do visibility checks and skip if required
 			$limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
 
 			// @todo: truncate first?
@@ -1092,7 +1084,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 			// meta
 			$date = date($this->dateFormat, $note->created);
-			// @todo; configurable field to get author name!
+			// @todo; configurable field to get author name?
 			$author = $note->createdUser->name;
 			// if note priority not set, it means note is "normal" so priority "2" set at runtime
 			if(!$note->priority) $note->priority = 2;
@@ -1106,8 +1098,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 			##################
 
-			// @todo: truncate $note->text + add Read More or View what if no comments?
-			// @todo: edit as required! e.g., do we need li#id?! + the data-attr?
 			$out .=
 				"<li id='note-{$note->id}' class='gridNote ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
 					"<div class='dn_note gridNote__overflow'{$noteWrapperStyles}>" .
@@ -1115,7 +1105,7 @@ class ProcessDashboardNotes extends Process implements Module {
 							"<h4 class='uk-comment-title uk-margin-remove'{$textColour}>{$note->title}</h4>".
 							"<div class='uk-comment-meta'{$textColour}>{$meta}</div>".
 						"</header>" .
-						// @todo: here and elsewhere, change these uk classes? are they not for comments?
+						// @todo: here and elsewhere, change these uk classes?
 						"<div class='uk-comment-body'>" . $text . "</div>" .
 						"<div class='uk-position-bottom-right uk-text-small dn_note_footer'>" .
 							"<span>{$commentsCount}</span>" .
@@ -1124,15 +1114,12 @@ class ProcessDashboardNotes extends Process implements Module {
 					"<div class='gridNote__hover'>" .
 						"<div class='gridNote__inner'>" .
 							"<label class='gridNote__icon' for='' data-value='{$note->id}'>" .
-								"<input class='dn_note_check gridNote__selectbox' id='note-{$note->id}' name='dn_selected_notes[]' type='checkbox' value='{$note->id}' data-media='{$note->id}'>" .
+								"<input class='dn_note_check gridNote__selectbox' id='note-{$note->id}' name='dn_selected_notes[]' type='checkbox' value='{$note->id}'>" .
 								"<span class='dn_select fa fa-check-square-o'></span>" .
 							"</label>" .
-							// @todo: add locked too! i.e. gridNote__locked + edit classes!
 							"<span class='dn_note_view_edit'>" .
-								//"<a href='{$viewURL}' class='dn_note_view gridNote__edit'>" . $viewIcon. "</a>" .
 								$viewMarkup .
 								$viewEditDividerMarkup .
-								//"<a href='{$editURL}' class='{$editClass}'>" . $editIcon . "</a>" .
 								$editMarkup .
 							"</span>" .
 						"</div>" .
@@ -1144,9 +1131,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		return $out;
 
-
 	}
-
 
 	/**
 	 * Recursively render list of threaded replies/comments to notes.
@@ -1167,8 +1152,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		foreach ($comments as $comment) {
 
-			// @todo: sort out \n and \t? not really important here though!
-
 			// grab the comment text and clean it
 			$commentText = htmlentities($comment->text, ENT_QUOTES, "UTF-8");
 			$commentText = str_replace("\n\n", "</p><p>", $commentText);
@@ -1177,6 +1160,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			$commentDate = date( $this->dateFormat, $comment->created);
 
 			## - build nested comments - ##
+
+			// @todo: sort out \n and \t? not really important here though!
 
 			// if this comment item is a parent; create the inner-items/child-comment-items
 			if ($comment->parent_id == $parent && $depth > 0) {
@@ -1198,8 +1183,6 @@ class ProcessDashboardNotes extends Process implements Module {
 								"<div class='uk-comment-meta'>{$commentDate}</div>" .
 							"</header>" .
 							"<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
-
-							// @todo: amend this! No need for some of the stuff here? Do we need the line?
 							"<div class='dn_note_comment_footer uk-margin-small-top uk-text-small'>" .
 								"<p class='dn_note_comment_action uk-margin-small'>" .
 									"<a class='dn_note_comment_action_reply' data-comment-id='{$comment->id}' href='#'>" .
@@ -1229,12 +1212,13 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * When replying to other replies, this form is cloned on the fly using JavaScript.
 	 *
 	 * @access private
-	 * @return void
+	 * @return string $out Markup of note reply form.
+	 *
 	 */
 	private function renderReplyMarkup() {
 
-		$note = $this->note;
 		$out = "";
+		$note = $this->note;
 
 		// if responses NOT allowed, return
 		if(2 == $note->reply) return $out;
@@ -1248,9 +1232,6 @@ class ProcessDashboardNotes extends Process implements Module {
 			$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
 			$noteResponses = $this->renderThreadedReplies($this->note->dashboard_note,$depth);
 		}
-
-		// @TODO: NEED TO ADD BUTTONS TO CLONED FORMS!!!
-
 
 		$modules = $this->wire('modules');
 
@@ -1288,7 +1269,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		*/
 
 		## hidden template for JS cloning ##
-
 
 		// hidden textarea to clone in JS to use to store text of the response to an existing comment
 		// its value will be changed in JS after cloning.
@@ -1477,7 +1457,6 @@ class ProcessDashboardNotes extends Process implements Module {
 			$page = new Page();
 			$page->template = "dashboard-note";
 			$page->parent = $parent;
-			// @todo: if new and locking, add lock!
 			// sanitize and convert to a URL friendly page name
 			if($parent->child("name={$noteName}, include=all")->id) $nameClash = true;
 		}
@@ -1486,7 +1465,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		else {
 			$page = $pages->get($notePageID);
 			// no such page found
-			// @todo: redirect back to edit page with error
 			if(!$page) {
 				$this->error($this->_('Note not found.'));
 				// redirect with error
@@ -1586,6 +1564,7 @@ class ProcessDashboardNotes extends Process implements Module {
 				$excludedIDs = $this->getVisibilityLimitedNotesIDs();
 				if(strlen($excludedIDs)) $selector .= ",id!={$excludedIDs}";
 				// check for global editing restrictions (edit each other's notes)
+				// if user can only edit their own notes, add that to selector
 				if(2 == $this->settings->editOther) $selector .= ",created_users_id={$user->id}";
 			}
 			$next = $page->next($selector);
@@ -1712,10 +1691,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 			}
 
-
-
-
-		}
+		}// end foreach
 
 		## messages ##
 		// success messages
@@ -1739,10 +1715,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		);
 
 		// success
-		if($i > 0) {
-			$this->message($actionTakenArray['success'][$action]);
-
-		}
+		if($i > 0) $this->message($actionTakenArray['success'][$action]);
 		// error
 		else {
 			$failActionString = in_array($action,array('priority_low','priority_normal','priority_high')) ? $actionTakenArray['fail']['priority'] : $actionTakenArray['fail'][$action];
@@ -1757,7 +1730,6 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		$pageNumStr = $pageNumStr ? "/{$pageNumStr}" : "";
 		$this->wire('session')->redirect($this->baseURL . "{$pageNumStr}");
-
 
 	}
 
@@ -1846,7 +1818,6 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @access private
 	 * @param array $post Input Post with notes settings.
-	 * @access private
 	 *
 	 */
 	private function saveSettings($post) {
@@ -2016,10 +1987,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @note: we limit these to only the current user's permissions.
 	 * It doesn't make sense to access-control if user will not have access to that role.
-	 * E.g. if they limit by a permission they do not have Or..
 	 *
 	 * @access private
-	 * @return void
+	 * @return array $roles Array of role->id=>role->name pairs of this user's roles.
 	 *
 	 */
 	private function getRoles() {
@@ -2036,10 +2006,9 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @note: we limit these to only the current user's permissions.
 	 * It doesn't make sense to access-control if user will not have access to that role.
-	 * E.g. if they limit by a permission they do not have Or..
 	 *
 	 * @access private
-	 * @return void
+	 * @return array $permissions Array of permission->id=>permission->name pairs of this user's permissions.
 	 *
 	 */
 	private function getPermissions() {
@@ -2054,15 +2023,17 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Get all users (minus guest user) for selection for note visibility.
 	 *
 	 * @access private
-	 * @return void
+	 * @return array $users Array of user->id=>user->title/name pairs of site users.
 	 *
 	 */
 	private function getUsers() {
 		// @todo: should non-superusers be able to see superusers names in this list? I don't think so?! or?
+		// @todo: this will also list frontend users as well! Filter them out?
 		$users = array();
 		foreach($this->wire('users') as $user) {
 			if($user->name == 'guest') continue;
-			$users[$user->id] = $user->name;
+			//$users[$user->id] = $user->name;
+			$users[$user->id] = $user->get("title|name");
 		}
 		return $users;
 	}
@@ -2073,7 +2044,6 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Set class properties for adding versus editing a note.
 	 *
 	 * @access private
-	 * @return void
 	 *
 	 */
 	private function setNoteValues() {
@@ -2115,7 +2085,6 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Set class properties for global settings.
 	 *
 	 * @access private
-	 * @return void
 	 *
 	 */
 	private function setGlobalNoteValues() {
@@ -2230,9 +2199,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Called only when the module is installed.
 	 *
 	 * A new page with this Process module assigned is created.
-	 * A new permission 'dashboard-notes' is created.
-	 * 3 fields are created.
-	 * A new template 'menu_pages' is created.
+	 * A new permission, fields, templates and pages are also created. @see verifyInstall().
 	 *
 	 * @access public
 	 *
@@ -2283,7 +2250,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Called only when the module is uninstalled.
 	 *
 	 * This should return the site to the same state it was in before the module was installed.
-	 * Deletes 3 fields, template and permission created on install as well as created menu pages.
+	 * Deletes fields, templates and permission created on install as well as created notes pages.
 	 *
 	 * @access public
 	 *
@@ -2470,16 +2437,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		$this->message("Dashboard Notes: Created templates $templateNames");
-
-		/* @todo?
-		// need to create this blank template file 'dashboard-notes.php' to enable MM to appear in the admin menu (view-access issues)
-		$path = $this->wire('config')->paths->templates . 'dashboard-notes.php';
-		if(!is_file($path)) {
-			$notice = "<?php namespace ProcessWire;\n\n#### - Intentionally left blank. Please do not delete this file - ###";
-			$notesTemplateFile = fopen($path, 'a');
-			fwrite($notesTemplateFile, $notice);
-			fclose($notesTemplateFile);
-		}*/
 
 		// add some extra settings ('allowed templates for children' doesn't seem to work with setImportData()? so we do it ourselves)
 		return $this->extraTemplateSettings();
