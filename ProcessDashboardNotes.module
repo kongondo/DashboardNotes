@@ -1179,7 +1179,7 @@ class ProcessDashboardNotes extends Process implements Module {
 					"<li>" .
 						"<article class='uk-comment dn_response_wrapper'>" .
 							"<header class='uk-comment-header'>" .
-								"<h4 class='uk-comment-title'>{$comment->cite} - {$comment->id}</h4>" .
+								"<h4 class='uk-comment-title'>{$comment->cite}</h4>" .
 								"<div class='uk-comment-meta'>{$commentDate}</div>" .
 							"</header>" .
 							"<div class='uk-comment-body uk-text-small'>{$commentText}</div>" .
