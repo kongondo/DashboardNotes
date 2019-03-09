@@ -36,8 +36,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			'title' => 'Dashboard Notes: Process',
 			'summary' => 'Create messages in ProcessWire Admin',
 			'author' => 'Francis Otieno (Kongondo)',
-			'version' => 1,
-			'href' => 'http:// processwire.com/talk/topic/xxxx/',// @todo
+			'version' => '0.1.0',
+			'href' => 'https://processwire.com/talk/topic/20980-dashboard-notes/',
 			'singular' => true,
 			'autoload' => false,
 			'permission' => 'dashboard-notes',
