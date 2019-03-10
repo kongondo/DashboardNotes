@@ -230,24 +230,15 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 		// @note: our menu has two items only: "Notes" and "Settings". if user can see and edit settings, we show the menu
+		$menu = "";
 		if(!$this->noSettings) {
-			$menu = "<div class='uk-width-expand uk-first-column'>" .$this->renderMenu() .	"</div>";
-			$menuActionsClass = " uk-width-1-3@s";
-		}
-		// else, no need to have a one item menu
-		else {
-			$menu = "";
-			$menuActionsClass = " uk-width-1-1@s";
+			$menu = "<div class='uk-width-expand uk-first-column'>" . $this->renderMenu($actions) . "</div>";
 		}
 
 		$topPanel =
 			"<div id='mm_top_panel' class='mm_top_panel'>" .
 				"<div id='mm_menu_actions_wrapper' data-uk-grid class='uk-grid'>" .
 					$menu .
-					"<div id='mm_actions' class='mm_actions{$menuActionsClass}'>" .
-						$actions .
-						"<label id='dn_action_select_label' for='dn_action_select'>" . $this->_('Action') . "</label>" .
-					"</div>" .
 					"<div id='dn_create_new_note' class='mm_actions uk-width-1-1@s'>" . $this->renderCreateNote() . "</div>" .
 				"</div>" .// div#dn_menu_actions_wrapper
 			"</div>";// div#dn_top_panel
@@ -937,10 +928,11 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Render navigation for module pages use.
 	 *
 	 * @access private
+	 * @param string $actions Rendered dropdown (default is empty string if not applicable)
 	 * @return string $out Markup of rendered navigation.
 	 *
 	 */
-	private function renderMenu() {
+	private function renderMenu($actions = "") {
 
 		// $allNotesURL = $this->baseURL;
 		$settingsURL = $this->baseURL . "/settings/";
@@ -953,6 +945,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
 		);
 
+		$actionsLabel = $actions === "" ? $actions : "<label id='dn_action_select_label' class='uk-form-label' for='dn_action_select' data-uk-tooltip='title: {$this->_("Tick some Notes below, pick an action, then click Apply.")}; pos: left'>" . $this->_('Actions') . "</label>";
 		$menuItems = '';
 		$on = " class='dn_on uk-active'";
 		// $off = "";
@@ -967,10 +960,18 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		$out =
-				"<nav class='uk-navbar-container uk-navbar-transparent' data-uk-navbar>" .
-					"<div id='dn_menu' class='uk-navbar-left'>".
-						"<ul class='nav uk-navbar-nav pw-primary-nav'>" .
+				"<nav class='uk-navbar-container' data-uk-navbar>" .
+					"<div id='dn_menu' class='uk-navbar-left'>" .
+						"<ul class='uk-navbar-nav pw-primary-nav'>" .
 							$menuItems .
+						"</ul>" .
+					"</div>" .
+					"<div id='dn_menu_actions' class='uk-navbar-right'>" .
+						"<ul class='uk-navbar-nav'>" .
+							"<div id='mm_actions'>" .
+								$actionsLabel .
+								$actions .
+							"</div>" .
 						"</ul>" .
 					"</div>" .
 				"</nav>";
