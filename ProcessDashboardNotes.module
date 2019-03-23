@@ -237,10 +237,10 @@ class ProcessDashboardNotes extends Process implements Module {
 		}
 
 		$topPanel =
-			"<div id='mm_top_panel' class='mm_top_panel'>" .
-				"<div id='mm_menu_actions_wrapper' data-uk-grid class='uk-grid'>" .
+			"<div id='dn_top_panel' class='dn_top_panel'>" .
+				"<div id='dn_menu_actions_wrapper' data-uk-grid class='uk-grid'>" .
 					$menu .
-					"<div id='dn_create_new_note' class='mm_actions uk-width-1-1@s'>" . $this->renderCreateNote() . "</div>" .
+					"<div id='dn_create_new_note' class='dn_actions uk-width-1-1@s'>" . $this->renderCreateNote() . "</div>" .
 				"</div>" .// div#dn_menu_actions_wrapper
 			"</div>";// div#dn_top_panel
 
@@ -969,7 +969,7 @@ class ProcessDashboardNotes extends Process implements Module {
 					"</div>" .
 					"<div id='dn_menu_actions' class='uk-navbar-right'>" .
 						"<ul class='uk-navbar-nav'>" .
-							"<div id='mm_actions'>" .
+							"<div id='dn_actions'>" .
 								$actionsLabel .
 								$actions .
 							"</div>" .
@@ -1355,7 +1355,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 */
 	private function renderShiftSelectMarkup() {
-		$out = '<div id="mm_shift_select_wrapper" class="dn_hide"><input id="dn_previous_selected_note" type="hidden" value="0"></div>';
+		$out = '<div id="dn_shift_select_wrapper" class="dn_hide"><input id="dn_previous_selected_note" type="hidden" value="0"></div>';
 		return $out;
 	}
 

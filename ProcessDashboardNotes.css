@@ -46,8 +46,8 @@ div#top_pager h2.dn_results_headline {float: left; margin: 0 0 1.5em 0;}
  }
 
  div.gridNote__inner {position: relative; width: 100%; height: 100%;}
- div.mm_actions_wrapper, div#top_pager {width: 100%;}
- div#mm_actions {padding-right: 1em}
+ div.dn_actions_wrapper, div#top_pager {width: 100%;}
+ div#dn_actions {padding-right: 1em}
  div.dn_note_footer {padding-right: 10px;}
  div#dn_note_responses {margin-top: 30px;}
  div#dn_note_text {font-size: 1.25em; padding-bottom: 25px;}
