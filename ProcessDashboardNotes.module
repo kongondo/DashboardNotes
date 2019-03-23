@@ -6,6 +6,7 @@
 * Messages can be classed according to priority, access-controlled, threaded into conversations and expired.
 *
 * @author Francis Otieno (Kongondo)
+* @credits: Szabesz - for help with code cleanup and CSS
 *
 * https://github.com/kongondo/ProcessDashboardNotes
 * Created 24 February 2019
@@ -2319,7 +2320,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @access public
 	 * @param null|integer $mode Whether to verify install possible (null) or commence install (1).
-	 * @return bool|ProcessDashboardNotes Boolean true if first step of install OR created fields.
+	 * @return bool Boolean true if first step of install OR created fields.
 	 *
 	 */
 	public function verifyInstall($mode = null) {
@@ -2475,7 +2476,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Return JSON data for installing fields for the module.
 	 *
 	 * @access private
-	 * @return stdClass $fieldsJSON JSON string containing fields data for use with Field::setImportData().
+	 * @return array Decoded JSON string containing fields data for use with Field::setImportData().
 	 *
 	 */
 	private function getFieldData() {
@@ -2487,7 +2488,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Return JSON data for installing templates for the module.
 	 *
 	 * @access private
-	 * @return stdClass $templatesJSON JSON string containing templates data for use with Template::setImportData().
+	 * @return array Decoded JSON string containing templates data for use with Template::setImportData().
 	 *
 	 */
 	private function getTemplateData() {
