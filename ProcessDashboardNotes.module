@@ -36,8 +36,8 @@ class ProcessDashboardNotes extends Process implements Module {
 			'title' => 'Dashboard Notes: Process',
 			'summary' => 'Create messages in ProcessWire Admin',
 			'author' => 'Francis Otieno (Kongondo)',
-			'version' => 1,
-			'href' => 'http:// processwire.com/talk/topic/xxxx/',// @todo
+			'version' => '0.1.0',
+			'href' => 'https://processwire.com/talk/topic/20980-dashboard-notes/',
 			'singular' => true,
 			'autoload' => false,
 			'permission' => 'dashboard-notes',
@@ -201,7 +201,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			$total = $notes->getTotal();
 			$headline = sprintf(__('%1$d to %2$d of %3$d'), $start+1, $end, $total);
 			if($total > $limit) {
-				$pager = $modules->get('MarkupPagerNav');
+				// $pager = $modules->get('MarkupPagerNav');
 				#Solution for pagination when using URL segments
 				// get the url segment string.
 				$url = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr;
@@ -223,7 +223,6 @@ class ProcessDashboardNotes extends Process implements Module {
 		$form->method = 'post';
 
 		// select dropdown
-		$label = '<label id="dn_action_select_label" for="dn_action_select">' . $this->_("Action") . '</label>';
 		$f = $modules->get('InputfieldSelect');
 		$f->attr('id+name', 'dn_action_select');
 		$f->addOptions($actions);
@@ -231,24 +230,15 @@ class ProcessDashboardNotes extends Process implements Module {
 
 
 		// @note: our menu has two items only: "Notes" and "Settings". if user can see and edit settings, we show the menu
+		$menu = "";
 		if(!$this->noSettings) {
-			$menu = "<div class='uk-width-expand uk-first-column'>" .$this->renderMenu() .	"</div>";
-			$menuActionsClass = " uk-width-1-3@s";
-		}
-		// else, no need to have a one item menu
-		else {
-			$menu = "";
-			$menuActionsClass = " uk-width-1-1@s";
+			$menu = "<div class='uk-width-expand uk-first-column'>" . $this->renderMenu($actions) . "</div>";
 		}
 
 		$topPanel =
 			"<div id='mm_top_panel' class='mm_top_panel'>" .
-				"<div id='mm_menu_actions_wrapper' uk-grid class='uk-grid'>" .
+				"<div id='mm_menu_actions_wrapper' data-uk-grid class='uk-grid'>" .
 					$menu .
-					"<div id='mm_actions' class='mm_actions{$menuActionsClass}'>" .
-						$actions .
-						"<label id='dn_action_select_label' for='dn_action_select'>" . $this->_('Action') . "</label>" .
-					"</div>" .
 					"<div id='dn_create_new_note' class='mm_actions uk-width-1-1@s'>" . $this->renderCreateNote() . "</div>" .
 				"</div>" .// div#dn_menu_actions_wrapper
 			"</div>";// div#dn_top_panel
@@ -334,7 +324,7 @@ class ProcessDashboardNotes extends Process implements Module {
 
 		// for comments/responses to note
 		// @note: if $this->settings->maxReply > 0, since we start by minusing 1, we add 1 to it. If $this->settings->maxReply == 0, we set it to infinity
-		$depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
+		// $depth = $this->settings->maxReply ? $this->settings->maxReply + 1 : INF;
 
 		// asterisks @todo: use this or numbers 1 - 3?
 		$notePriority = str_repeat("&#42;",$note->priority);
@@ -368,7 +358,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$note = $this->note;
 
 		// @access-control: user has no visibility access to this note OR users not allowed to edit each other's notes and this user is not the note author
-		$user = $this->wire('user');
+		// $user = $this->wire('user');
 		$editOther = $this->checkEdit($note);
 		if((!$this->checkAccess($this->note)) || (!$editOther)) {
 			$this->error($this->_('You have no access to this note!'));
@@ -378,7 +368,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$out = "";
 		$modules = $this->wire('modules');
 		$viewMarkup = '';
-		$headline = $note->title ? $note->title : $this->_('Add New');
+		// $headline = $note->title ? $note->title : $this->_('Add New');
 		$warningNoticeNoVisibilityIDsSet = $this->_('Please note that if nothing is selected here, irrespective of your visibility setting, all notes will be visible to everyone with access to Dashboard Notes!');
 
 		if($note->title) {
@@ -493,7 +483,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$backgroundColourLabel = $this->_('Background Colour');
 		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
-		$coloursMarkup = "<div uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
+		$coloursMarkup = "<div data-uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
 
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $coloursMarkup);
@@ -709,7 +699,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$out = '';
 
 		$out .=
-			"<div id='dn_top_wrapper' uk-grid>" .
+			"<div id='dn_top_wrapper' data-uk-grid>" .
 				"<div class='uk-width-expand'>" .
 					$this->renderMenu() .
 				"</div>" .
@@ -770,7 +760,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$backgroundColourLabel = $this->_('Background Colour');
 		$backgroundColourMarkup = "<div class='uk-width-1-2@s'><h4>{$backgroundColourLabel}</h4><div id='dn_background_colour_picker' class='dn_colour_picker' data-colour='dn_note_background_colour' data-colour-type='background'></div></div>";
 
-		$coloursMarkup = "<div uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
+		$coloursMarkup = "<div data-uk-grid class='uk-grid'>{$textColourMarkup}{$backgroundColourMarkup}</div>";
 
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $coloursMarkup);
@@ -902,7 +892,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$heightLabel = $this->_('Height');
 		$heightMarkup = "<div class='uk-width-1-2@s'><h4>{$heightLabel}</h4><div id='dn_note_height' class='dn_note_dimensions'>{$f->render()}</div></div>";
 
-		$dimensionsMarkup = "<div uk-grid class='uk-grid'>{$widthMarkup}{$heightMarkup}</div>";
+		$dimensionsMarkup = "<div data-uk-grid class='uk-grid'>{$widthMarkup}{$heightMarkup}</div>";
 
 		$f = $modules->get('InputfieldMarkup');
 		$f->attr('value', $dimensionsMarkup);
@@ -938,12 +928,13 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Render navigation for module pages use.
 	 *
 	 * @access private
+	 * @param string $actions Rendered dropdown (default is empty string if not applicable)
 	 * @return string $out Markup of rendered navigation.
 	 *
 	 */
-	private function renderMenu() {
+	private function renderMenu($actions = "") {
 
-		$allNotesURL = $this->baseURL;
+		// $allNotesURL = $this->baseURL;
 		$settingsURL = $this->baseURL . "/settings/";
 
 		$allNotesText = $this->_('Notes');
@@ -954,9 +945,10 @@ class ProcessDashboardNotes extends Process implements Module {
 			'settings' =>  array( 'href' => $settingsURL, 'link_text' => $allNoteSettingsText),
 		);
 
+		$actionsLabel = $actions === "" ? $actions : "<label id='dn_action_select_label' class='uk-form-label' for='dn_action_select' data-uk-tooltip='title: {$this->_("Tick some Notes below, pick an action, then click Apply.")}; pos: left'>" . $this->_('Actions') . "</label>";
 		$menuItems = '';
 		$on = " class='dn_on uk-active'";
-		$off = "";
+		// $off = "";
 		foreach ($menuItemsArray as $key => $value) {
 			$href = $value['href'];
 			$linkText = $value['link_text'];
@@ -964,14 +956,22 @@ class ProcessDashboardNotes extends Process implements Module {
 			if(!$this->urlSeg1 && $key != 'settings') $class = $on;
 			elseif($this->urlSeg1 && $this->urlSeg1 == $key) $class = $on;
 
-			$menuItems .= "<li><a href='{$href}'$class><span>{$linkText}</span></a></li>";
+			$menuItems .= "<li><a href='{$href}' {$class}><span>{$linkText}</span></a></li>";
 		}
 
 		$out =
-				"<nav class='uk-navbar-container uk-navbar-transparent' uk-navbar>" .
-					"<div id='dn_menu' class='uk-navbar-left'>".
-						"<ul class='nav uk-navbar-nav pw-primary-nav'>" .
+				"<nav class='uk-navbar-container' data-uk-navbar>" .
+					"<div id='dn_menu' class='uk-navbar-left'>" .
+						"<ul class='uk-navbar-nav pw-primary-nav'>" .
 							$menuItems .
+						"</ul>" .
+					"</div>" .
+					"<div id='dn_menu_actions' class='uk-navbar-right'>" .
+						"<ul class='uk-navbar-nav'>" .
+							"<div id='mm_actions'>" .
+								$actionsLabel .
+								$actions .
+							"</div>" .
 						"</ul>" .
 					"</div>" .
 				"</nav>";
@@ -998,13 +998,14 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Render notes for display on landing page.
 	 *
 	 * @access private
+	 * @param PageArray $notes All the notes to be rendered.
 	 * @return string $out Markup of rendered notes for display.
 	 *
 	 */
 	private function renderNotes($notes) {
 
 		$out = '';
-		$user = $this->wire('user');
+		// $user = $this->wire('user');
 		$urlParamPageNumStr = $this->wire('input')->pageNumStr() ? "?page=" . $this->wire('input')->pageNumStr() : "";
 		$viewIcon = "<i class='fa fa-lg fa-eye'></i>";
 
@@ -1064,7 +1065,7 @@ class ProcessDashboardNotes extends Process implements Module {
 			$noteWrapperStyles = " style='{$width}{$height}{$backgroundColour}'";
 
 			// we'll use this to do visibility checks and skip if required
-			$limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
+			// $limitIDs = $note->limitVisibility > 1 && is_array($note->limitVisibilityIDs) ? implode("|",$note->limitVisibilityIDs) : '';
 
 			// @todo: truncate first?
 
@@ -1099,11 +1100,11 @@ class ProcessDashboardNotes extends Process implements Module {
 			##################
 
 			$out .=
-				"<li id='note-{$note->id}' class='gridNote ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}'{$textColour}>" .
-					"<div class='dn_note gridNote__overflow'{$noteWrapperStyles}>" .
+				"<li id='note-{$note->id}' class='gridNote ui-widget dn_note{$priorityClass}' data-note-value='{$note->id}' {$textColour}>" .
+					"<div class='dn_note gridNote__overflow' {$noteWrapperStyles}>" .
 						"<header class='uk-comment-header'>" .
-							"<h4 class='uk-comment-title uk-margin-remove'{$textColour}>{$note->title}</h4>".
-							"<div class='uk-comment-meta'{$textColour}>{$meta}</div>".
+							"<h4 class='uk-comment-title uk-margin-remove' {$textColour}>{$note->title}</h4>".
+							"<div class='uk-comment-meta' {$textColour}>{$meta}</div>".
 						"</header>" .
 						// @todo: here and elsewhere, change these uk classes?
 						"<div class='uk-comment-body'>" . $text . "</div>" .
@@ -1223,7 +1224,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		// if responses NOT allowed, return
 		if(2 == $note->reply) return $out;
 
-		$noteResponses = '';
+		// $noteResponses = '';
 		// if responses exist, fetch them
 		if(!$note->dashboard_note->count()) {
 			$noteResponses = "<p>" . $this->_('There are no responses to this note.') . "</p>";
@@ -1761,7 +1762,7 @@ class ProcessDashboardNotes extends Process implements Module {
 		$urlParamPageNumStr = $paginationNumberStr ? "?page=" . $paginationNumberStr : "";
 
 		// direct response to note itself
-		$noteResponseParentID = 0;// this will always be zero anyway
+		// $noteResponseParentID = 0;// this will always be zero anyway
 		$noteResponseText = $sanitizer->textarea($post->dn_note_response_text);
 
 		// responses to existing comments/responses @note: arrays
@@ -1822,7 +1823,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 */
 	private function saveSettings($post) {
 
-		$pages = $this->wire('pages');
+		// $pages = $this->wire('pages');
 		$sanitizer = $this->wire('sanitizer');
 
 		$notesSettingsPage = $this->wire('page')->child('include=all,template=dashboard-notes');
@@ -2318,6 +2319,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 *
 	 * @access public
 	 * @param null|integer $mode Whether to verify install possible (null) or commence install (1).
+	 * @return bool|ProcessDashboardNotes Boolean true if first step of install OR created fields.
 	 *
 	 */
 	public function verifyInstall($mode = null) {
@@ -2473,7 +2475,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Return JSON data for installing fields for the module.
 	 *
 	 * @access private
-	 * @return string $fieldsJSON JSON string containing fields data for use with Field::setImportData().
+	 * @return stdClass $fieldsJSON JSON string containing fields data for use with Field::setImportData().
 	 *
 	 */
 	private function getFieldData() {
@@ -2485,7 +2487,7 @@ class ProcessDashboardNotes extends Process implements Module {
 	 * Return JSON data for installing templates for the module.
 	 *
 	 * @access private
-	 * @return string $templatesJSON JSON string containing templates data for use with Template::setImportData().
+	 * @return stdClass $templatesJSON JSON string containing templates data for use with Template::setImportData().
 	 *
 	 */
 	private function getTemplateData() {
